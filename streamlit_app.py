@@ -68,24 +68,8 @@ else:
         return all_text
 
     # Função para dividir o texto em trechos (chunks)
-    def dividir_documento(texto, chunk_size=1000):
+    def dividir_documento(texto, chunk_size=3000):
         return [texto[i:i + chunk_size] for i in range(0, len(texto), chunk_size)]
-
-    # Função para gerar resumos de cada trecho
-    async def gerar_resumos(chunks):
-        resumos = []
-        for i, chunk in enumerate(chunks):
-            st.write(f"🔄 Resumindo parte {i+1}/{len(chunks)}...")
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Resuma o seguinte trecho de forma clara e objetiva:"},
-                    {"role": "user", "content": chunk}
-                ]
-            )
-            resumo = response["choices"][0]["message"]["content"]
-            resumos.append(resumo)
-        return " ".join(resumos)
 
     # Função para pós-processamento das respostas
     def melhorar_resposta(resposta):
@@ -98,20 +82,25 @@ else:
         st.write("🔄 Extraindo texto dos documentos...")
         documents_text = extract_text_from_pdfs(uploaded_files)
 
-        # Dividir documento em trechos e gerar resumos
+        # Dividir documento em trechos
         st.write("🔄 Dividindo documento em partes...")
         chunks = dividir_documento(documents_text)
-        resumo_documento = asyncio.run(gerar_resumos(chunks))
 
         async def gerar_resposta():
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Você é um assistente especialista em gestão pública e política organizacional. Responda de forma completa e clara, explicando passo a passo seu raciocínio e citando exemplos do documento resumido."},
-                    {"role": "user", "content": f"Resumo do documento: {resumo_documento}\n\nPergunta: {question}"}
-                ]
-            )
-            return response["choices"][0]["message"]["content"]
+            respostas = []
+            for i, chunk in enumerate(chunks):
+                st.write(f"🔍 Analisando parte {i+1}/{len(chunks)}...")
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "Você é um assistente especialista em gestão pública e política organizacional. Responda de forma clara e completa, explicando passo a passo seu raciocínio."},
+                        {"role": "user", "content": f"Trecho do documento: {chunk}\n\nPergunta: {question}"}
+                    ]
+                )
+                resposta_parcial = response["choices"][0]["message"]["content"]
+                respostas.append(resposta_parcial)
+
+            return " ".join(respostas)
 
         try:
             st.write("🧠 Gerando resposta...")
@@ -120,3 +109,4 @@ else:
             st.success(f"**Resposta:** {answer}")
         except Exception as e:
             st.error(f"Erro ao gerar a resposta: {e}")
+
