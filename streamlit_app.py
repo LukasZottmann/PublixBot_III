@@ -41,13 +41,18 @@ else:
         # Faz a chamada para o modelo OpenAI
         try:
             st.write("🧠 Gerando resposta...")
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
-                    {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
-                ]
-            )
+            import asyncio  # Necessário para usar chamadas assíncronas
+
+async def gerar_resposta():
+    response = await openai.ChatCompletion.acreate(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
+            {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
+        ]
+    )
+    return response["choices"][0]["message"]["content"]
+
             answer = response["choices"][0]["message"]["content"]
             st.success(f"**Resposta:** {answer}")
         except Exception as e:
