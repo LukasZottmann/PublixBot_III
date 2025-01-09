@@ -70,7 +70,7 @@ else:
 
         async def gerar_resposta():
             response = await openai.ChatCompletion.acreate(
-                model="gpt-4",
+                model="gpt-3.5",
                 messages=[
                     {"role": "system", "content": "Você é uma inteligência artificial desenvolvida pelo Instituto Publix especialista em gestão pública e política organizacional. Responda de forma completa e clara, citando exemplos do documento quando aplicável e estruturando a resposta com parágrafos organizados. Caso não encontre informações suficientes, peça mais detalhes."},
                     {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
