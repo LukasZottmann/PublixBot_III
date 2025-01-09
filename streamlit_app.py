@@ -8,28 +8,28 @@ st.markdown(
     """
     <style>
     body {
-        background-color: #000000; /* Fundo preto */
-        color: #ffffff; /* Texto branco */
+        background-color: #000000;
+        color: #ffffff;
     }
     .stApp {
-        background-color: #000000; /* Fundo preto */
+        background-color: #000000;
     }
     .css-1q8dd3e p, .css-1q8dd3e h1, .css-1q8dd3e h2 {
-        color: #ffd700 !important; /* Amarelo dourado nos títulos */
+        color: #ffd700 !important;
     }
     .stButton > button {
-        background-color: #ffd700 !important; /* Botão amarelo */
-        color: #000000 !important; /* Texto preto nos botões */
-        border: none !important; /* Sem borda nos botões */
+        background-color: #ffd700 !important;
+        color: #000000 !important;
+        border: none !important;
     }
     .stTextInput, .stTextArea, .stFileUploader {
-        background-color: #1c1c1c !important; /* Fundo preto nas caixas */
-        color: #ffd700 !important; /* Texto amarelo */
-        border: none !important; /* Remove a borda das caixas */
+        background-color: #1c1c1c !important;
+        color: #ffd700 !important;
+        border: none !important;
     }
     .stAlert {
-        background-color: #333333 !important; /* Fundo das mensagens */
-        color: #ffffff !important; /* Texto das mensagens */
+        background-color: #333333 !important;
+        color: #ffffff !important;
     }
     </style>
     """,
@@ -67,9 +67,17 @@ else:
                     all_text += text
         return all_text
 
-    # Função para dividir o texto em trechos (chunks)
-    def dividir_documento(texto, chunk_size=3000):
+    # Função para dividir o texto em trechos
+    def dividir_documento(texto, chunk_size=1000):
         return [texto[i:i + chunk_size] for i in range(0, len(texto), chunk_size)]
+
+    # Função para buscar os trechos mais relevantes
+    def buscar_trechos_relevantes(chunks, pergunta):
+        respostas = []
+        for chunk in chunks:
+            if pergunta.lower() in chunk.lower():
+                respostas.append(chunk)
+        return respostas[:3]  # Retorna no máximo 3 trechos
 
     # Função para pós-processamento das respostas
     def melhorar_resposta(resposta):
@@ -77,7 +85,6 @@ else:
             return "Parece que o documento não contém todas as informações necessárias. Tente fazer outra pergunta ou carregar outro documento."
         return resposta
 
-    # Processamento da pergunta
     if uploaded_files and question:
         st.write("🔄 Extraindo texto dos documentos...")
         documents_text = extract_text_from_pdfs(uploaded_files)
@@ -86,27 +93,25 @@ else:
         st.write("🔄 Dividindo documento em partes...")
         chunks = dividir_documento(documents_text)
 
-        async def gerar_resposta():
-            respostas = []
-            for i, chunk in enumerate(chunks):
-                st.write(f"🔍 Analisando parte {i+1}/{len(chunks)}...")
-                response = await openai.ChatCompletion.acreate(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "Você é um assistente especialista em gestão pública e política organizacional. Responda de forma clara e completa, explicando passo a passo seu raciocínio."},
-                        {"role": "user", "content": f"Trecho do documento: {chunk}\n\nPergunta: {question}"}
-                    ]
-                )
-                resposta_parcial = response["choices"][0]["message"]["content"]
-                respostas.append(resposta_parcial)
+        # Buscar trechos relevantes
+        st.write("🔍 Buscando trechos mais relevantes...")
+        trechos_relevantes = buscar_trechos_relevantes(chunks, question)
 
-            return " ".join(respostas)
+        # Função para gerar resposta
+        async def gerar_resposta():
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Você é um assistente especialista em gestão pública. Responda de forma clara e objetiva com base nos trechos do documento."},
+                    {"role": "user", "content": f"Trechos relevantes do documento: {'. '.join(trechos_relevantes)}\n\nPergunta: {question}"}
+                ]
+            )
+            return response["choices"][0]["message"]["content"]
 
         try:
             st.write("🧠 Gerando resposta...")
             answer = asyncio.run(gerar_resposta())
-            answer = melhorar_resposta(answer)  # Pós-processamento da resposta
+            answer = melhorar_resposta(answer)
             st.success(f"**Resposta:** {answer}")
         except Exception as e:
             st.error(f"Erro ao gerar a resposta: {e}")
-
