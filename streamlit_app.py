@@ -40,7 +40,7 @@ else:
 
         # Função assíncrona para gerar resposta usando OpenAI
         async def gerar_resposta():
-            response = await openai.ChatCompletion.acreate(
+            response = openai.ChatCompletion.create(...)
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
