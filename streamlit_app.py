@@ -2,6 +2,51 @@ import streamlit as st
 import openai
 from PyPDF2 import PdfReader
 
+import streamlit as st
+import openai
+from PyPDF2 import PdfReader
+import asyncio
+
+# Estilo personalizado com CSS
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #000000; /* Fundo preto */
+        color: #ffffff; /* Texto branco */
+    }
+    .stApp {
+        background-color: #000000; /* Fundo preto */
+    }
+    .css-1q8dd3e p, .css-1q8dd3e h1, .css-1q8dd3e h2 {
+        color: #ffd700 !important; /* Amarelo dourado nos títulos */
+    }
+    .stButton > button {
+        background-color: #ffd700 !important; /* Botão amarelo */
+        color: #000000 !important; /* Texto preto nos botões */
+    }
+    .stTextInput, .stTextArea, .stFileUploader {
+        background-color: #1c1c1c !important; /* Caixa de entrada preta */
+        color: #ffd700 !important; /* Texto amarelo */
+        border: 1px solid #ffd700 !important; /* Borda amarela */
+    }
+    .stAlert {
+        background-color: #333333 !important; /* Fundo das mensagens */
+        color: #ffffff !important; /* Texto das mensagens */
+    }
+    .css-17eq0hr {
+        background-color: #333333; /* Fundo dos campos */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.title("💛 PublixBot")
+st.write(
+    "Olá, sou uma inteligência artificial pré-treinada desenvolvida pelo Insti
+
+
 st.title("💛 PublixBot")
 st.write(
     "Olá, sou uma inteligência artificial pré-treinada desenvolvida pelo Instituto Publix para armazenar documentos importantes e te dar respostas com base neles. "
