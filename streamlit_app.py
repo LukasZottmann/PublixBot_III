@@ -3,7 +3,7 @@ import openai
 from PyPDF2 import PdfReader
 import asyncio
 
-# Estilo personalizado com CSS
+# Estilo personalizado com CSS (sem bordas amarelas)
 st.markdown(
     """
     <style>
@@ -20,18 +20,16 @@ st.markdown(
     .stButton > button {
         background-color: #ffd700 !important; /* Botão amarelo */
         color: #000000 !important; /* Texto preto nos botões */
+        border: none !important; /* Sem borda nos botões */
     }
     .stTextInput, .stTextArea, .stFileUploader {
-        background-color: #1c1c1c !important; /* Caixa de entrada preta */
+        background-color: #1c1c1c !important; /* Fundo preto nas caixas */
         color: #ffd700 !important; /* Texto amarelo */
-        border: 1px solid #ffd700 !important; /* Borda amarela */
+        border: none !important; /* Remove a borda das caixas */
     }
     .stAlert {
         background-color: #333333 !important; /* Fundo das mensagens */
         color: #ffffff !important; /* Texto das mensagens */
-    }
-    .css-17eq0hr {
-        background-color: #333333; /* Fundo dos campos */
     }
     </style>
     """,
