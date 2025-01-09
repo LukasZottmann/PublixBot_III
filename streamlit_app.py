@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 from PyPDF2 import PdfReader
+import asyncio
 
 st.title("💛 PublixBot")
 st.write(
@@ -34,26 +35,24 @@ else:
         return all_text
 
     if uploaded_files and question:
-        # Extrai o texto dos PDFs
         st.write("🔄 Extraindo texto dos documentos...")
         documents_text = extract_text_from_pdfs(uploaded_files)
 
-        # Faz a chamada para o modelo OpenAI
+        # Função assíncrona para gerar resposta usando OpenAI
+        async def gerar_resposta():
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
+                    {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
+                ]
+            )
+            return response["choices"][0]["message"]["content"]
+
         try:
             st.write("🧠 Gerando resposta...")
-            import asyncio  # Necessário para usar chamadas assíncronas
-
-async def gerar_resposta():
-    response = await openai.ChatCompletion.acreate(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
-            {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
-        ]
-    )
-    return response["choices"][0]["message"]["content"]
-
-            answer = response["choices"][0]["message"]["content"]
+            answer = asyncio.run(gerar_resposta())  # Executa a função assíncrona
             st.success(f"**Resposta:** {answer}")
         except Exception as e:
             st.error(f"Erro ao gerar a resposta: {e}")
+
