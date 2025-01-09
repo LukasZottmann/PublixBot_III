@@ -2,10 +2,10 @@ import streamlit as st
 from openai import OpenAI
 
 # Show title and description.
-st.title("📄 Document question answering")
+st.title("💛 PublixBot")
 st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
+    "Olá, sou uma inteligência artificial pré-treinada desenvolvida pelo Instituto Publix para armazenar documentos importantes e te dar respostas com base neles."
+    "Para usar esse aplicativo, você vai precisa de uma chave da API da OpenAI, onde você pode conseguir [aqui](https://platform.openai.com/account/api-keys)"
 )
 
 # Ask user for their OpenAI API key via `st.text_input`.
@@ -13,7 +13,7 @@ st.write(
 # via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
 openai_api_key = st.text_input("OpenAI API Key", type="password")
 if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+    st.info("Por favor adicione sua chave da API do OpenAI para continuar.", icon="🗝️")
 else:
 
     # Create an OpenAI client.
