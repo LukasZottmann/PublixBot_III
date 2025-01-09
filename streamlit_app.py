@@ -72,7 +72,7 @@ else:
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "Você é um assistente que responde com base em documentos carregados."},
+                    {"role": "system", "content": "Você é um especialista em gestão pública e política organizacional. Responda de forma completa e clara, citando exemplos do documento quando aplicável e estruturando a resposta com parágrafos organizados. Caso não encontre informações suficientes, peça mais detalhes."},
                     {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
                 ]
             )
