@@ -15,13 +15,11 @@ def extract_text_from_pdfs(uploaded_files):
 st.set_page_config(page_title="PublixBot", layout="wide")
 st.sidebar.header("Configurações")
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
-
-# Permitir múltiplos uploads
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
 
-# Variáveis de estado
-if "historico_mensagens" not in st.session_state:
-    st.session_state.historico_mensagens = []
+# Variáveis de estado para o chat
+if "mensagens_chat" not in st.session_state:
+    st.session_state.mensagens_chat = []
 
 # Validação de chave API
 if not api_key:
@@ -30,11 +28,10 @@ if not api_key:
 
 openai.api_key = api_key
 
-# Exibição do texto e entrada de mensagens
+# Exibição do título e upload de documentos
 st.title("💛 PublixBot 1.5")
-st.subheader("Pergunte qualquer coisa com base no conteúdo dos documentos!")
+st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
-# Upload e leitura de PDFs
 if uploaded_files:
     document_text = extract_text_from_pdfs(uploaded_files)
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
@@ -47,79 +44,43 @@ def gerar_resposta(texto_usuario):
         return "Por favor, carregue documentos antes de enviar perguntas."
 
     contexto = f"""
-Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
-Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
+    Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
+    Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
 
-Contexto dos documentos:
-{document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
-"""
+    Contexto do(s) documento(s):
+    {document_text[:3000]}  # Limite de caracteres para manter o desempenho
+    """
+    mensagens = [
+        {"role": "system", "content": contexto},
+        {"role": "user", "content": texto_usuario}
+    ]
 
     try:
         resposta = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": contexto},
-                {"role": "user", "content": texto_usuario}
-            ],
+            model="gpt-4",
+            messages=mensagens,
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["message"]["content"]
-
-        st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
-        return mensagem_final
+        return resposta["choices"][0]["message"]["content"]
 
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário
+# Entrada do usuário e exibição contínua do chat
 with st.container():
     user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
+        # Gera a resposta
         resposta_bot = gerar_resposta(user_input)
-        st.markdown(f"**Resposta:** {resposta_bot}")
 
-# Histórico de mensagens com estilos customizados
-st.subheader("📝 Histórico de Mensagens:")
-st.markdown(
-    """
-    <style>
-    .user-question {
-        background-color: #FFEB3B;  /* Amarelo claro */
-        padding: 10px;
-        border-radius: 10px;
-        font-weight: bold;
-    }
-    .bot-response {
-        background-color: transparent;  /* Transparente, volta ao fundo padrão */
-        padding: 10px;
-        border-radius: 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+        # Atualiza o chat com a nova mensagem
+        st.session_state.mensagens_chat.append(f"**Você:** {user_input}")
+        st.session_state.mensagens_chat.append(f"**Bot:** {resposta_bot}")
 
-for msg in st.session_state.historico_mensagens:
-    st.markdown(f'<div class="user-question">**Você:** {msg["user"]}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="bot-response">**Bot:** {msg["bot"]}</div>', unsafe_allow_html=True)
+        # Limpa o campo de entrada após enviar
+        st.experimental_rerun()
 
-# Botões de limpar histórico e baixar resumo
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🗑️ Limpar histórico"):
-        st.session_state.historico_mensagens = []
-        st.success("Histórico limpo com sucesso!")
-
-with col2:
-    if st.button("📄 Baixar Resumo"):
-        if st.session_state.historico_mensagens:
-            resumo_texto = "\n".join(f"Pergunta: {msg['user']}\nResposta: {msg['bot']}" for msg in st.session_state.historico_mensagens)
-            st.download_button(
-                "Baixar resumo",
-                data=resumo_texto,
-                file_name="resumo_chat.txt",
-                mime="text/plain"
-            )
-        else:
-            st.warning("Nenhuma conversa para baixar o resumo.")
+# Exibe o chat contínuo
+st.markdown("### 📝 Chat")
+st.write("\n".join(st.session_state.mensagens_chat))
