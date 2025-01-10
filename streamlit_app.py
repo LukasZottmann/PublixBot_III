@@ -57,9 +57,9 @@ Contexto do documento:
 
     try:
         resposta = openai.ChatCompletion.create(
-            model="gpt-4",  # Atualizando para GPT-4
+            model="gpt-4",
             messages=mensagens,
-            temperature=0.3,  # Mantém as respostas mais objetivas
+            temperature=0.3,
             max_tokens=1000
         )
         mensagem_final = resposta["choices"][0]["message"]["content"]
@@ -75,13 +75,31 @@ with st.container():
     user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
-        st.write(f"**Bot:** {resposta_bot}")
 
-# Histórico de mensagens
+# Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
+st.markdown(
+    """
+    <style>
+    .user-question {
+        background-color: #FFEB3B;  /* Amarelo claro */
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    .bot-response {
+        background-color: transparent;  /* Transparente, volta ao fundo padrão */
+        padding: 10px;
+        border-radius: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 for msg in st.session_state.historico_mensagens:
-    st.write(f"**Você:** {msg['user']}")
-    st.write(f"**Bot:** {msg['bot']}")
+    st.markdown(f'<div class="user-question">**Você:** {msg["user"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bot-response">**Bot:** {msg["bot"]}</div>', unsafe_allow_html=True)
 
 # Botões de limpar histórico e baixar resumo
 col1, col2 = st.columns(2)
@@ -101,4 +119,4 @@ with col2:
                 mime="text/plain"
             )
         else:
-            st.warning("Nenhuma conversa para baixar o res
+            st.warning("Nenhuma conversa para baixar o resumo.")
