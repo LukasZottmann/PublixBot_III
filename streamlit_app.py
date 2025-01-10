@@ -65,47 +65,10 @@ else:
         if st.button("🗑️ Limpar histórico"):
             st.session_state.history = []
 
-        # CSS para container com rolagem vertical
-        st.markdown(
-            """
-            <style>
-            .scrollable-container {
-                height: 400px;  /* Altura fixa */
-                overflow-y: scroll;  /* Rolagem vertical */
-                border: 1px solid #ccc;
-                padding: 10px;
-                border-radius: 10px;
-                background-color: #f5f5f5;
-            }
-            .user-bubble {
-                background-color: #ffd700;
-                color: black;
-                padding: 10px;
-                border-radius: 10px;
-                margin-bottom: 10px;
-                max-width: 70%;
-                text-align: left;
-            }
-            .bot-bubble {
-                background-color: #1c1c1c;
-                color: white;
-                padding: 10px;
-                border-radius: 10px;
-                margin-bottom: 10px;
-                max-width: 70%;
-                text-align: left;
-            }
-            </style>
-            <div class="scrollable-container">
-            """,
-            unsafe_allow_html=True
-        )
-
-        # Exibição das mensagens com rolagem
-        for message in st.session_state.history:
-            if message["role"] == "user":
-                st.markdown(f'<div class="user-bubble"><strong>Você:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="bot-bubble"><strong>Bot:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Exibição do histórico de mensagens com `st.expander`
+        with st.expander("📜 Histórico de Mensagens", expanded=True):
+            for message in st.session_state.history:
+                if message["role"] == "user":
+                    st.markdown(f"**Você:** {message['content']}")
+                else:
+                    st.markdown(f"**Bot:** {message['content']}")
