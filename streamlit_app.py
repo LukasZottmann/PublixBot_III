@@ -19,6 +19,27 @@ st.markdown(
     .stTextInput>div>input {
         font-size: 18px;
     }
+    .chat-container {
+        background-color: #1e1e1e;
+        padding: 15px;
+        border-radius: 10px;
+        overflow-y: auto;
+        max-height: 400px;
+    }
+    .user-message {
+        background-color: #ffd700;
+        color: black;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 5px;
+    }
+    .bot-message {
+        background-color: #333;
+        color: white;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 5px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -52,9 +73,10 @@ else:
         if "history" not in st.session_state:
             st.session_state.history = []
 
-        # Função síncrona para gerar resposta
+        # Função para gerar a resposta com histórico
         def gerar_resposta(user_input):
             trecho_documento = documents_text[:2000]
+            st.session_state.history.append({"role": "user", "content": user_input})
 
             try:
                 with st.spinner('🧠 Processando sua pergunta...'):
@@ -62,12 +84,13 @@ else:
                         model="gpt-4",
                         messages=[
                             {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Responda de forma clara e concisa."},
+                            *st.session_state.history,
                             {"role": "user", "content": f"Trecho do documento: {trecho_documento}\nPergunta: {user_input}"}
                         ],
                         temperature=0.3
                     )
                     answer = response["choices"][0]["message"]["content"]
-                    st.markdown(f"**Bot:** {answer}")  # Exibir resposta direta, sem histórico
+                    st.session_state.history.append({"role": "assistant", "content": answer})
 
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
@@ -76,15 +99,34 @@ else:
         st.title("💛 PublixBot 1.5")
         st.write("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento, ela é especialista em administração pública, fique à vontade para perguntar qualquer coisa!")
 
-        # Campo de pergunta
+        # Exibir histórico de mensagens
+        st.markdown("---")
+        st.write("📝 **Histórico de Mensagens:**")
+        chat_container = st.container()
+
+        with chat_container:
+            st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+            for message in st.session_state.history:
+                if message["role"] == "user":
+                    st.markdown(f'<div class="user-message">**Você:** {message["content"]}</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="bot-message">**Bot:** {message["content"]}</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Campo de pergunta e botões
         st.markdown("---")
         user_input = st.text_input("💬 Digite sua mensagem aqui:")
 
-        # Botão para enviar pergunta
         if user_input:
             gerar_resposta(user_input)
 
-        # Botão para limpar histórico (mesmo não exibindo o histórico)
-        if st.button("🗑️ Limpar histórico"):
-            st.session_state.history = []
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🗑️ Limpar histórico"):
+                st.session_state.history = []
+
+        with col2:
+            if len(st.session_state.history) > 0:
+                resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
+                st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
 
