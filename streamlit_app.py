@@ -29,7 +29,7 @@ openai.api_key = api_key
 
 # Exibição do texto e entrada de mensagens
 st.title("💛 PublixBot 1.5")
-st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento. Ela é especialista em administração pública. Pergunte qualquer coisa!")
+st.subheader("Pergunte qualquer coisa com base no conteúdo dos documentos!")
 
 # Upload e leitura de PDF
 if uploaded_file:
@@ -44,26 +44,25 @@ def gerar_resposta(texto_usuario):
         return "Por favor, carregue um documento antes de enviar perguntas."
 
     contexto = f"""
-Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
-Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
+    Você é uma IA especializada em administração pública.
+    Responda às perguntas com base no documento fornecido.
 
-Contexto do documento:
-{document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
-"""
+    Trecho do documento:
+    {document_text[:2000]}
+    """
     mensagens = [
         {"role": "system", "content": contexto},
         {"role": "user", "content": texto_usuario}
     ]
 
     try:
-        resposta = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Altere para "gpt-4" se preferir usar o modelo mais avançado
-            messages=mensagens,
+        resposta = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"{contexto}\nPergunta: {texto_usuario}\nResposta:",
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["message"]["content"]
-
+        mensagem_final = resposta["choices"][0]["text"].strip()
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
 
@@ -72,53 +71,18 @@ Contexto do documento:
 
 # Entrada do usuário
 with st.container():
-    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
+    user_input = st.text_input("💬 Digite sua mensagem aqui:")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
-        if resposta_bot:
-            st.success("Resposta enviada!")
+        st.success("Resposta enviada!")
 
-# Histórico de mensagens com estilos customizados
+# Histórico de mensagens
 st.subheader("📝 Histórico de Mensagens:")
-st.markdown(
-    """
-    <style>
-    .user-question {
-        background-color: #FFEB3B;  /* Amarelo claro */
-        padding: 10px;
-        border-radius: 10px;
-        font-weight: bold;
-    }
-    .bot-response {
-        background-color: transparent;  /* Transparente, volta ao fundo padrão */
-        padding: 10px;
-        border-radius: 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 for msg in st.session_state.historico_mensagens:
-    st.markdown(f'<div class="user-question">**Você:** {msg["user"]}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="bot-response">**Bot:** {msg["bot"]}</div>', unsafe_allow_html=True)
+    st.markdown(f"**Você:** {msg['user']}")
+    st.markdown(f"**Bot:** {msg['bot']}")
 
-# Botões de limpar histórico e baixar resumo
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🗑️ Limpar histórico"):
-        st.session_state.historico_mensagens = []
-        st.success("Histórico limpo com sucesso!")
-
-with col2:
-    if st.button("📄 Baixar Resumo"):
-        if st.session_state.historico_mensagens:
-            resumo_texto = "\n".join(f"Pergunta: {msg['user']}\nResposta: {msg['bot']}" for msg in st.session_state.historico_mensagens)
-            st.download_button(
-                "Baixar resumo",
-                data=resumo_texto,
-                file_name="resumo_chat.txt",
-                mime="text/plain"
-            )
-        else:
-            st.warning("Nenhuma conversa para baixar o resumo.")
+# Botões de limpar histórico
+if st.button("🗑️ Limpar histórico"):
+    st.session_state.historico_mensagens = []
+    st.success("Histórico limpo com sucesso!")
