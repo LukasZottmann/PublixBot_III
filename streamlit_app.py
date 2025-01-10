@@ -57,6 +57,10 @@ if "documents_text" not in st.session_state:
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
+# Título e texto de apresentação
+st.title("💛 PublixBot 1.5")
+st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento. Ela é especialista em administração pública. Fique à vontade para perguntar qualquer coisa!")
+
 # Sidebar com configurações
 with st.sidebar:
     st.header("⚙️ Configurações")
@@ -89,3 +93,4 @@ if api_key:
 
 else:
     st.warning("⚠️ Por favor, insira sua chave de API OpenAI para começar.")
+
