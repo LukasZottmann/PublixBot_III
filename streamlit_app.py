@@ -3,11 +3,11 @@ import openai
 import pdfplumber
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
-# Configuração da página precisa ser o primeiro comando
 st.set_page_config(page_title="PublixBot", layout="wide")
 
-# Inicializando o modelo de embeddings semânticos
+# Carregar o modelo de embeddings com cache
 @st.cache_resource
 def load_embedding_model():
     return SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
@@ -27,9 +27,20 @@ def split_into_paragraphs(text, max_length=500):
 
 # Função para encontrar o trecho mais relevante
 def find_relevant_paragraphs(query, paragraphs):
+    if not paragraphs:
+        return "Erro: Nenhum parágrafo foi encontrado no documento."
+    
     query_embedding = embedding_model.encode([query])
     paragraph_embeddings = embedding_model.encode(paragraphs)
+
+    if len(paragraph_embeddings) == 0:
+        return "Erro: Os embeddings dos parágrafos estão vazios."
+
     similarities = cosine_similarity(query_embedding, paragraph_embeddings)
+
+    if np.max(similarities) == 0:
+        return "Nenhum trecho relevante encontrado. O documento pode não conter informações relacionadas à pergunta."
+
     best_index = similarities.argmax()
     return paragraphs[best_index]
 
@@ -52,7 +63,10 @@ st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Pub
 if uploaded_file:
     document_text = extract_text_from_pdf(uploaded_file)
     paragraphs = split_into_paragraphs(document_text)
-    st.success("📥 Documento carregado com sucesso!")
+    if len(paragraphs) == 0:
+        st.error("Erro: O documento PDF não contém texto ou o texto não foi extraído corretamente.")
+    else:
+        st.success("📥 Documento carregado com sucesso!")
 else:
     st.warning("Carregue um documento para começar.")
 
@@ -61,6 +75,9 @@ def gerar_resposta(texto_usuario):
         return "Por favor, carregue um documento antes de enviar perguntas."
 
     paragrafo_relevante = find_relevant_paragraphs(texto_usuario, paragraphs)
+    if "Erro" in paragrafo_relevante:
+        return paragrafo_relevante
+
     contexto = f"Contexto extraído do documento:\n{paragrafo_relevante}"
 
     mensagens = [
