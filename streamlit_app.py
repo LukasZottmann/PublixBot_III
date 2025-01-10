@@ -1,98 +1,104 @@
 import streamlit as st
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
+import openai
 import pdfplumber
 
-# Configuração inicial da página
-st.set_page_config(page_title="PublixBot 1.5", layout="wide")
+# Função para extrair texto do PDF
+def extract_text_from_pdf(pdf_file):
+    with pdfplumber.open(pdf_file) as pdf:
+        text = ""
+        for page in pdf.pages:
+            text += page.extract_text() or ""
+    return text
 
-# Função para carregar o modelo de embeddings
-@st.cache_resource
-def load_model():
-    try:
-        model = SentenceTransformer('all-MiniLM-L6-v2')  # Modelo leve e eficiente
-        st.write("Modelo de embeddings carregado com sucesso!")
-        return model
-    except Exception as e:
-        st.error(f"Erro ao carregar o modelo de embeddings: {e}")
-        return None
+# Configuração da interface
+st.set_page_config(page_title="PublixBot", layout="wide")
+st.sidebar.header("Configurações")
+api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
+uploaded_file = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf")
 
-model = load_model()
+# Variáveis de estado
+if "historico_mensagens" not in st.session_state:
+    st.session_state.historico_mensagens = []
 
-# Função para encontrar parágrafos relevantes
-def find_relevant_paragraphs(user_input, paragraphs):
-    if model is None:
-        return "Erro: O modelo de análise semântica não está disponível."
-    
-    try:
-        # Geração do embedding da consulta do usuário
-        query_embedding = model.encode(user_input)
-        paragraph_embeddings = [model.encode(p) for p in paragraphs if p.strip()]
+# Validação de chave API
+if not api_key:
+    st.warning("Por favor, insira sua chave de API.")
+    st.stop()
 
-        if not paragraph_embeddings:
-            return "Erro: Não há parágrafos disponíveis para comparação."
+openai.api_key = api_key
 
-        # Cálculo da similaridade
-        similarities = cosine_similarity([query_embedding], paragraph_embeddings)
-        best_match_idx = similarities.argmax()
+# Exibição do texto e entrada de mensagens
+st.title("💛 PublixBot 1.5")
+st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento. Ela é especialista em administração pública. Pergunte qualquer coisa!")
 
-        return paragraphs[best_match_idx]
+# Upload e leitura de PDF
+if uploaded_file:
+    document_text = extract_text_from_pdf(uploaded_file)
+    st.success("📥 Documento carregado com sucesso!")
+else:
+    st.warning("Carregue um documento para começar.")
 
-    except Exception as e:
-        st.warning(f"Erro na análise semântica: {e}")
-        return "Não foi possível processar a análise semântica. Tente novamente."
-
-# Função principal para gerar respostas
+# Função de geração de resposta
 def gerar_resposta(texto_usuario):
-    if 'paragraphs' not in st.session_state or not st.session_state.paragraphs:
-        return "Erro: Nenhum documento carregado ou o texto não foi extraído corretamente."
+    if not uploaded_file:
+        return "Por favor, carregue um documento antes de enviar perguntas."
 
-    # Chama a função de busca de parágrafos relevantes
-    paragrafo_relevante = find_relevant_paragraphs(texto_usuario, st.session_state.paragraphs)
-    return paragrafo_relevante
+    contexto = f"""
+Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
+Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
 
-# Interface principal do app
-def main():
-    # Título e instruções
-    st.title("PublixBot 1.5")
-    st.markdown("Essa é a inteligência artificial desenvolvida pelo Instituto Publix. Pergunte qualquer coisa com base no conteúdo dos documentos!")
+Contexto do documento:
+{document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
+"""
+    mensagens = [
+        {"role": "system", "content": contexto},
+        {"role": "user", "content": texto_usuario}
+    ]
 
-    # Área de upload de PDF
-    uploaded_file = st.file_uploader("Faça upload de documentos (.pdf)", type=["pdf"])
-    if uploaded_file:
-        try:
-            with pdfplumber.open(uploaded_file) as pdf:
-                text = "\n".join(page.extract_text() or '' for page in pdf.pages)
-                if text.strip():
-                    paragraphs = text.split('\n\n')
-                    st.session_state.paragraphs = paragraphs
-                    st.success("Documento carregado com sucesso!")
-                else:
-                    st.error("Erro: O documento PDF não contém texto ou o texto não foi extraído corretamente.")
-        except Exception as e:
-            st.error(f"Erro ao processar o PDF: {e}")
+    try:
+        resposta = openai.ChatCompletion.create(
+            model="gpt-4",  # Atualizando para GPT-4
+            messages=mensagens,
+            temperature=0.3,  # Mantém as respostas mais objetivas
+            max_tokens=1000
+        )
+        mensagem_final = resposta["choices"][0]["message"]["content"]
 
-    # Campo de entrada de perguntas do usuário
-    user_input = st.text_input("Digite sua mensagem aqui:")
+        st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
+        return mensagem_final
+
+    except Exception as e:
+        return f"Erro ao gerar a resposta: {e}"
+
+# Entrada do usuário
+with st.container():
+    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
-        st.markdown(f"**Bot:** {resposta_bot}")
+        st.write(f"**Bot:** {resposta_bot}")
 
-    # Botões de controle
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("Limpar histórico"):
-            st.session_state.paragraphs = []
-            st.success("Histórico limpo com sucesso!")
+# Histórico de mensagens
+st.subheader("📝 Histórico de Mensagens:")
+for msg in st.session_state.historico_mensagens:
+    st.write(f"**Você:** {msg['user']}")
+    st.write(f"**Bot:** {msg['bot']}")
 
-    with col2:
-        if st.button("📄 Baixar Resumo"):
-            if 'paragraphs' in st.session_state and st.session_state.paragraphs:
-                resumo_texto = "\n\n".join(st.session_state.paragraphs)
-                st.download_button(label="📥 Clique aqui para baixar", data=resumo_texto, file_name="resumo.txt")
-            else:
-                st.warning("Nenhum conteúdo disponível para download.")
+# Botões de limpar histórico e baixar resumo
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🗑️ Limpar histórico"):
+        st.session_state.historico_mensagens = []
+        st.success("Histórico limpo com sucesso!")
 
-# Executar o app
-if __name__ == '__main__':
-    main()
+with col2:
+    if st.button("📄 Baixar Resumo"):
+        if st.session_state.historico_mensagens:
+            resumo_texto = "\n".join(f"Pergunta: {msg['user']}\nResposta: {msg['bot']}" for msg in st.session_state.historico_mensagens)
+            st.download_button(
+                "Baixar resumo",
+                data=resumo_texto,
+                file_name="resumo_chat.txt",
+                mime="text/plain"
+            )
+        else:
+            st.warning("Nenhuma conversa para baixar o res
