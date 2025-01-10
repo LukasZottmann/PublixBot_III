@@ -63,18 +63,22 @@ def gerar_resposta(texto_usuario):
             max_tokens=1000
         )
         mensagem_final = resposta["choices"][0]["text"].strip()
+        
+        # Atualiza o histórico de mensagens
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
 
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário
-with st.container():
+# Entrada do usuário e exibição da resposta
+with st.form("form_pergunta"):
     user_input = st.text_input("💬 Digite sua mensagem aqui:")
-    if user_input:
+    enviado = st.form_submit_button("Enviar")
+    if enviado and user_input:
         resposta_bot = gerar_resposta(user_input)
-        st.success("Resposta enviada!")
+        st.session_state.historico_mensagens.append({"user": user_input, "bot": resposta_bot})
+        st.write(f"**Resposta:** {resposta_bot}")
 
 # Histórico de mensagens
 st.subheader("📝 Histórico de Mensagens:")
