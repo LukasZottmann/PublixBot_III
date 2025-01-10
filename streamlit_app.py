@@ -2,19 +2,22 @@ import streamlit as st
 import openai
 import pdfplumber
 
-# Função para extrair texto do PDF
-def extract_text_from_pdf(pdf_file):
-    with pdfplumber.open(pdf_file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text() or ""
-    return text
+# Função para extrair texto de múltiplos PDFs
+def extract_text_from_pdfs(uploaded_files):
+    combined_text = ""
+    for pdf_file in uploaded_files:
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                combined_text += page.extract_text() or ""
+    return combined_text
 
 # Configuração da interface
 st.set_page_config(page_title="PublixBot", layout="wide")
 st.sidebar.header("Configurações")
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
-uploaded_file = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf")
+
+# Permitir múltiplos uploads
+uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
 
 # Variáveis de estado
 if "historico_mensagens" not in st.session_state:
@@ -31,28 +34,27 @@ openai.api_key = api_key
 st.title("💛 PublixBot 1.5")
 st.subheader("Pergunte qualquer coisa com base no conteúdo dos documentos!")
 
-# Upload e leitura de PDF
-if uploaded_file:
-    document_text = extract_text_from_pdf(uploaded_file)
-    st.success("📥 Documento carregado com sucesso!")
+# Upload e leitura de PDFs
+if uploaded_files:
+    document_text = extract_text_from_pdfs(uploaded_files)
+    st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
 else:
-    st.warning("Carregue um documento para começar.")
+    st.warning("Carregue documentos para começar.")
 
 # Função de geração de resposta
 def gerar_resposta(texto_usuario):
-    if not uploaded_file:
-        return "Por favor, carregue um documento antes de enviar perguntas."
+    if not uploaded_files:
+        return "Por favor, carregue documentos antes de enviar perguntas."
 
     contexto = f"""
 Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
 Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
 
-Contexto do documento:
+Contexto dos documentos:
 {document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
 """
 
     try:
-        # Usando `gpt-3.5-turbo`
         resposta = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
