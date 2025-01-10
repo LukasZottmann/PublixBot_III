@@ -56,14 +56,14 @@ def gerar_resposta(texto_usuario):
     ]
 
     try:
-        resposta = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=f"{contexto}\nPergunta: {texto_usuario}\nResposta:",
+        resposta = openai.ChatCompletion.create(
+            model="gpt-4",  # ou "gpt-3.5-turbo" se desejar
+            messages=mensagens,
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["text"].strip()
-        
+        mensagem_final = resposta["choices"][0]["message"]["content"].strip()
+
         # Atualiza o histórico de mensagens
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
@@ -77,7 +77,6 @@ with st.form("form_pergunta"):
     enviado = st.form_submit_button("Enviar")
     if enviado and user_input:
         resposta_bot = gerar_resposta(user_input)
-        st.session_state.historico_mensagens.append({"user": user_input, "bot": resposta_bot})
         st.write(f"**Resposta:** {resposta_bot}")
 
 # Histórico de mensagens
