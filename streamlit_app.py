@@ -21,9 +21,6 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []
 
-if "user_input" not in st.session_state:
-    st.session_state.user_input = ""
-
 # Validação de chave API
 if not api_key:
     st.warning("Por favor, insira sua chave de API.")
@@ -71,7 +68,8 @@ def gerar_resposta(texto_usuario):
         return f"Erro ao gerar a resposta: {e}"
 
 # Entrada do usuário e exibição contínua do chat
-user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
+user_input = st.text_input("💬 Digite sua mensagem aqui:")
+
 if user_input:
     # Gera a resposta
     resposta_bot = gerar_resposta(user_input)
@@ -80,8 +78,8 @@ if user_input:
     st.session_state.mensagens_chat.append(f"**Você:** {user_input}")
     st.session_state.mensagens_chat.append(f"**Bot:** {resposta_bot}")
 
-    # Limpa o campo de entrada com segurança
-    st.session_state.user_input = ""
+    # Limpa o campo de entrada usando st.experimental_set_query_params
+    st.experimental_set_query_params(user_input="")
 
 # Exibe o chat contínuo
 st.markdown("### 📝 Chat")
