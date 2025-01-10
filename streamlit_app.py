@@ -78,7 +78,7 @@ if user_input:
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
 
     # Limpa o campo de entrada
-    user_input = ""
+    st.session_state["user_input"] = ""
 
 # Estilo para cores e alinhamento das mensagens
 st.markdown(
@@ -116,11 +116,17 @@ st.markdown("### 📝 Chat")
 st.markdown('<div class="message-container">', unsafe_allow_html=True)
 
 for mensagem in st.session_state.mensagens_chat:
-    st.markdown(
-        f'<div class="user-question">**Você:** {mensagem["user"]}</div>', unsafe_allow_html=True
-    )
-    st.markdown(
-        f'<div class="bot-response">**Bot:** {mensagem["bot"]}</div>', unsafe_allow_html=True
-    )
+    try:
+        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+        
+        st.markdown(
+            f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True
+        )
+    except Exception as e:
+        st.error(f"Erro ao exibir a mensagem: {e}")
 
 st.markdown('</div>', unsafe_allow_html=True)
