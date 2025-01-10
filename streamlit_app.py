@@ -17,7 +17,7 @@ else:
     if uploaded_files:
         st.write("✅ Documentos carregados com sucesso!")
 
-        # Função para extração de texto com PDFplumber
+        # Função de extração de texto com PDFplumber
         def extract_text_from_pdfs(files):
             all_text = ""
             for file in files:
@@ -38,13 +38,12 @@ else:
             st.write("📝 **Prévia do texto extraído:**")
             st.code(documents_text[:500])
 
-        # Histórico de mensagens
         if "history" not in st.session_state:
             st.session_state.history = []
 
         # Função de geração de resposta
         async def gerar_resposta(user_input):
-            trecho_documento = documents_text[:2000]  # Limita os primeiros 2000 caracteres para contexto
+            trecho_documento = documents_text[:2000]  # Limita os primeiros 2000 caracteres
             st.session_state.history.append({"role": "user", "content": user_input})
 
             response = await openai.ChatCompletion.acreate(
@@ -68,14 +67,17 @@ else:
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
 
-        # Exibição do histórico de mensagens em formato de balões de chat
+        # Estilo CSS personalizado para o histórico de mensagens com barra de rolagem
         st.markdown(
             """
             <style>
             .chat-container {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
+                height: 400px;  /* Altura fixa do container */
+                overflow-y: scroll;  /* Barra de rolagem vertical */
+                border: 1px solid #666;
+                padding: 10px;
+                border-radius: 10px;
+                background-color: #f8f8f8;
             }
             .user-bubble {
                 background-color: #ffd700;
@@ -84,6 +86,7 @@ else:
                 border-radius: 15px;
                 text-align: left;
                 max-width: 80%;
+                margin-bottom: 10px;
                 align-self: flex-end;
             }
             .bot-bubble {
@@ -93,6 +96,7 @@ else:
                 border-radius: 15px;
                 text-align: left;
                 max-width: 80%;
+                margin-bottom: 10px;
                 align-self: flex-start;
             }
             </style>
@@ -101,7 +105,7 @@ else:
             unsafe_allow_html=True
         )
 
-        # Exibição das mensagens com formatação de balões
+        # Exibição das mensagens no container com rolagem
         for message in st.session_state.history:
             if message["role"] == "user":
                 st.markdown(f'<div class="user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
