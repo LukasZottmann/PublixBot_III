@@ -50,28 +50,24 @@ def gerar_resposta(texto_usuario):
     Trecho do documento:
     {document_text[:2000]}
     """
-    mensagens = [
-        {"role": "system", "content": contexto},
-        {"role": "user", "content": texto_usuario}
-    ]
+    mensagens = f"{contexto}\n\nUsuário: {texto_usuario}\nIA:"
 
     try:
-        resposta = openai.ChatCompletion.create(
-            model="gpt-4",  # ou "gpt-3.5-turbo" se desejar
-            messages=mensagens,
+        resposta = openai.Completion.create(
+            engine="text-davinci-003",  # Compatível com a versão antiga
+            prompt=mensagens,
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["message"]["content"].strip()
+        mensagem_final = resposta["choices"][0]["text"].strip()
 
-        # Atualiza o histórico de mensagens
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
 
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário e exibição da resposta
+# Entrada do usuário
 with st.form("form_pergunta"):
     user_input = st.text_input("💬 Digite sua mensagem aqui:")
     enviado = st.form_submit_button("Enviar")
@@ -85,7 +81,7 @@ for msg in st.session_state.historico_mensagens:
     st.markdown(f"**Você:** {msg['user']}")
     st.markdown(f"**Bot:** {msg['bot']}")
 
-# Botões de limpar histórico
+# Botão para limpar histórico
 if st.button("🗑️ Limpar histórico"):
     st.session_state.historico_mensagens = []
     st.success("Histórico limpo com sucesso!")
