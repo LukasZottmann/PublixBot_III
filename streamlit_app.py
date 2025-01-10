@@ -41,7 +41,7 @@ else:
             st.session_state.history = []
 
         async def gerar_resposta(user_input):
-            trecho_documento = documents_text[:2000]
+            trecho_documento = documents_text[:2000]  # Envia até 2000 caracteres
             st.session_state.history.append({"role": "user", "content": user_input})
 
             response = await openai.ChatCompletion.acreate(
@@ -56,6 +56,7 @@ else:
             answer = response["choices"][0]["message"]["content"]
             st.session_state.history.append({"role": "assistant", "content": answer})
 
+        # Campo de mensagem do usuário
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
             try:
@@ -64,49 +65,11 @@ else:
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
 
-        # Estilo corrigido com um container com barra de rolagem
-        st.markdown(
-            """
-            <style>
-            .chat-container {
-                height: 400px;  /* Altura fixa */
-                overflow-y: auto;  /* Barra de rolagem automática */
-                border: 1px solid #666;
-                padding: 15px;
-                border-radius: 10px;
-                background-color: #f4f4f9;
-            }
-            .user-bubble {
-                background-color: #ffd700;
-                color: black;
-                padding: 10px;
-                border-radius: 12px;
-                margin-bottom: 10px;
-                text-align: left;
-                max-width: 70%;
-                align-self: flex-end;
-            }
-            .bot-bubble {
-                background-color: #1c1c1c;
-                color: white;
-                padding: 10px;
-                border-radius: 12px;
-                margin-bottom: 10px;
-                text-align: left;
-                max-width: 70%;
-                align-self: flex-start;
-            }
-            </style>
-            <div class="chat-container">
-            """,
-            unsafe_allow_html=True
-        )
-
-        # Exibição das mensagens no chat com o container corrigido
+        # Exibição do histórico de mensagens de forma simples
+        st.write("### Histórico de Mensagens:")
         for message in st.session_state.history:
             if message["role"] == "user":
-                st.markdown(f'<div class="user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f"**Você:** {message['content']}")
             else:
-                st.markdown(f'<div class="bot-bubble">{message["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f"**Bot:** {message['content']}")
 
-        st.markdown("</div>", unsafe_allow_html=True)
