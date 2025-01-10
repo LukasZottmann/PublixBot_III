@@ -1,6 +1,6 @@
 import streamlit as st
 import openai
-from PyPDF2 import PdfReader
+import pdfplumber
 import asyncio
 
 # Estilo personalizado para chatbot
@@ -46,16 +46,16 @@ else:
     if uploaded_files:
         st.write("✅ Documentos carregados com sucesso!")
 
-        # Função para extrair texto dos PDFs
+        # Função para extrair texto dos PDFs usando PDFplumber
         def extract_text_from_pdfs(files):
             all_text = ""
             for file in files:
                 try:
-                    reader = PdfReader(file)
-                    for page in reader.pages:
-                        text = page.extract_text()
-                        if text:
-                            all_text += text
+                    with pdfplumber.open(file) as pdf:
+                        for page in pdf.pages:
+                            text = page.extract_text()
+                            if text:
+                                all_text += text + "\n"
                 except Exception as e:
                     st.error(f"Erro ao ler o arquivo {file.name}: {e}")
             return all_text if all_text.strip() else "Não foi possível extrair texto do PDF. Verifique se o documento contém texto digitalizado."
