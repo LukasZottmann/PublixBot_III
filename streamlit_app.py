@@ -75,12 +75,52 @@ if user_input:
     resposta_bot = gerar_resposta(user_input)
 
     # Atualiza o chat com a nova mensagem
-    st.session_state.mensagens_chat.append(f"**Você:** {user_input}")
-    st.session_state.mensagens_chat.append(f"**Bot:** {resposta_bot}")
+    st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
 
-    # Limpa o campo de entrada usando st.experimental_set_query_params
-    st.experimental_set_query_params(user_input="")
+    # Limpa o campo de entrada
+    user_input = ""
 
-# Exibe o chat contínuo
+# Estilo para cores e alinhamento das mensagens
+st.markdown(
+    """
+    <style>
+    .user-question {
+        background-color: #E1F5FE;  /* Azul claro */
+        text-align: right;
+        padding: 10px;
+        margin: 5px;
+        border-radius: 15px;
+        font-weight: bold;
+        color: #0277BD;
+    }
+    .bot-response {
+        background-color: #F1F8E9;  /* Verde claro */
+        text-align: left;
+        padding: 10px;
+        margin: 5px;
+        border-radius: 15px;
+        color: #33691E;
+    }
+    .message-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Exibe o chat com alinhamento e cores
 st.markdown("### 📝 Chat")
-st.write("\n".join(st.session_state.mensagens_chat))
+st.markdown('<div class="message-container">', unsafe_allow_html=True)
+
+for mensagem in st.session_state.mensagens_chat:
+    st.markdown(
+        f'<div class="user-question">**Você:** {mensagem["user"]}</div>', unsafe_allow_html=True
+    )
+    st.markdown(
+        f'<div class="bot-response">**Bot:** {mensagem["bot"]}</div>', unsafe_allow_html=True
+    )
+
+st.markdown('</div>', unsafe_allow_html=True)
