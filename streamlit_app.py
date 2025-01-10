@@ -56,7 +56,7 @@ Contexto do documento:
     ]
 
     try:
-        resposta = openai.ChatCompletion.create(
+        resposta = openai.ChatCompletion.acreate(  # Atualizado para a nova versão
             model="gpt-4",
             messages=mensagens,
             temperature=0.3,
@@ -70,19 +70,11 @@ Contexto do documento:
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário com formulário de envio
-with st.form("formulario_chat"):
-    user_input = st.text_input("💬 Digite sua mensagem aqui:")
-    submit_button = st.form_submit_button("Enviar")
-    
-    if submit_button and user_input:
-        try:
-            st.write("Processando pergunta...")  # Log visível na interface
-            resposta_bot = gerar_resposta(user_input)
-            st.session_state.historico_mensagens.append({"user": user_input, "bot": resposta_bot})
-            st.success("Resposta enviada!")
-        except Exception as e:
-            st.error(f"Erro ao processar: {e}")
+# Entrada do usuário
+with st.container():
+    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
+    if user_input:
+        resposta_bot = gerar_resposta(user_input)
 
 # Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
