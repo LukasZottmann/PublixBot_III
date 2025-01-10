@@ -57,9 +57,9 @@ Contexto do documento:
 
     try:
         resposta = openai.ChatCompletion.create(
-            model="gpt-4",  # Atualizando para GPT-4
+            model="gpt-4",
             messages=mensagens,
-            temperature=0.3,  # Mantém as respostas mais objetivas
+            temperature=0.3,
             max_tokens=1000
         )
         mensagem_final = resposta["choices"][0]["message"]["content"]
@@ -88,7 +88,7 @@ st.markdown(
         font-weight: bold;
     }
     .bot-response {
-        background-color: #E0E0E0;  /* Cinza claro */
+        background-color: transparent;  /* Transparente, volta ao fundo padrão */
         padding: 10px;
         border-radius: 10px;
     }
