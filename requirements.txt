@@ -6,5 +6,5 @@ faiss-cpu
 sentence-transformers
 tiktoken
 openai==0.28.0
-
+pdfplumber
 
