@@ -17,9 +17,11 @@ def carregar_pdf(arquivo):
 # Função para limpar histórico de mensagens
 def limpar_historico():
     st.session_state.history = []
+    st.session_state.user_input = ""
 
 # Função principal de geração de resposta
-def gerar_resposta(user_input):
+def gerar_resposta():
+    user_input = st.session_state.user_input
     if not st.session_state.documents_text:
         st.error("⚠️ Nenhum documento foi carregado.")
         return
@@ -40,12 +42,20 @@ def gerar_resposta(user_input):
             resposta = response["choices"][0]["message"]["content"]
             st.session_state.history.append({"role": "user", "content": user_input})
             st.session_state.history.append({"role": "assistant", "content": resposta})
+            st.session_state.user_input = ""  # Limpa o campo após a resposta
     except Exception as e:
         st.error(f"❌ Erro ao gerar a resposta: {e}")
-        st.write("🚨 Detalhes do erro:", e)
 
 # Layout do aplicativo
 st.set_page_config(page_title="PublixBot 1.5", page_icon="💛", layout="wide")
+
+# Inicialização de chaves do `session_state`
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "documents_text" not in st.session_state:
+    st.session_state.documents_text = ""
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
 
 # Sidebar com configurações
 with st.sidebar:
@@ -63,15 +73,12 @@ if api_key:
 
         # Exibição do histórico de mensagens
         st.subheader("📄 Histórico de Mensagens:")
-        if "history" not in st.session_state:
-            st.session_state.history = []
-
         for msg in st.session_state.history:
             role_style = "background-color: #FFDD44; color: black; padding: 10px; border-radius: 5px;" if msg["role"] == "user" else "background-color: #2C2C2C; color: white; padding: 10px; border-radius: 5px;"
             st.markdown(f"<div style='{role_style}'>{msg['content']}</div>", unsafe_allow_html=True)
 
         # Campo de entrada de pergunta
-        st.text_input("📝 Digite sua mensagem aqui:", key="user_input", on_change=gerar_resposta, args=(st.session_state.user_input,))
+        st.text_input("📝 Digite sua mensagem aqui:", key="user_input", on_change=gerar_resposta)
 
         # Botões de ação
         col1, col2 = st.columns([1, 1])
