@@ -4,7 +4,7 @@ import pdfplumber
 import asyncio
 
 # Configuração da página
-st.set_page_config(page_title="PublixBot Chatbot", page_icon="💛", layout="wide")
+st.set_page_config(page_title="PublixBot 1.5", page_icon="💛", layout="wide")
 
 # Estilos personalizados
 st.markdown(
@@ -39,22 +39,7 @@ st.markdown(
 # Sidebar com chave da API e upload de PDF
 st.sidebar.title("⚙️ Configurações")
 openai_api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
-modo_escuro = st.sidebar.checkbox("🌙 Modo escuro")
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
-
-# Alternar tema claro/escuro
-if modo_escuro:
-    st.markdown(
-        """
-        <style>
-        body {
-            background-color: #1e1e1e;
-            color: white;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
 
 if not openai_api_key:
     st.sidebar.warning("Por favor, insira sua chave da OpenAI API para continuar.")
@@ -101,8 +86,8 @@ else:
                 st.session_state.history.append({"role": "assistant", "content": answer})
 
         # Área principal com título e histórico de mensagens
-        st.title("💛 PublixBot Chatbot")
-        st.write("Faça perguntas interativas com base nos documentos enviados!")
+        st.title("💛 PublixBot 1.5")
+        st.write("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento, ela é especialista em administração pública, fique à vontade para perguntar qualquer coisa!")
 
         # Exibição do histórico de mensagens
         with st.expander("📜 Histórico de Mensagens", expanded=True):
@@ -124,10 +109,5 @@ else:
         with col2:
             if len(st.session_state.history) > 0:
                 resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
-                st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
-
-        if user_input:
-            try:
-                asyncio.run(gerar_resposta(user_input))
-            except Exception as e:
-                st.error(f"Erro ao gerar a resposta: {e}")
+                st.button("📄 Baixar Resumo", disabled=True)  # Botão estilizado, mas só decorativo
+                st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt", key="download_button")
