@@ -52,6 +52,7 @@ else:
             answer = response["choices"][0]["message"]["content"]
             st.session_state.history.append({"role": "assistant", "content": answer})
 
+        # Campo de mensagem do usuário
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
             try:
@@ -60,47 +61,15 @@ else:
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
 
-        # CSS para adicionar barra de rolagem no histórico
-        st.markdown(
-            """
-            <style>
-            .chat-container {
-                height: 400px;  /* Altura fixa */
-                overflow-y: auto;  /* Barra de rolagem automática */
-                border: 1px solid #cccccc;
-                padding: 10px;
-                border-radius: 10px;
-                background-color: #f9f9f9;
-            }
-            .user-bubble {
-                background-color: #ffd700;
-                color: black;
-                padding: 10px;
-                border-radius: 12px;
-                margin-bottom: 10px;
-                max-width: 70%;
-                align-self: flex-end;
-            }
-            .bot-bubble {
-                background-color: #1c1c1c;
-                color: white;
-                padding: 10px;
-                border-radius: 12px;
-                margin-bottom: 10px;
-                max-width: 70%;
-                align-self: flex-start;
-            }
-            </style>
-            <div class="chat-container">
-            """,
-            unsafe_allow_html=True
-        )
+        # Botão para limpar o histórico de mensagens
+        if st.button("🗑️ Limpar histórico"):
+            st.session_state.history = []
 
-        # Exibição das mensagens no chat com o container corrigido
-        for message in st.session_state.history:
-            if message["role"] == "user":
-                st.markdown(f'<div class="user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="bot-bubble">{message["content"]}</div>', unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Exibição do histórico de mensagens com elementos nativos
+        with st.container():
+            st.write("### Histórico de Mensagens:")
+            for message in st.session_state.history:
+                if message["role"] == "user":
+                    st.markdown(f"<div style='background-color: #ffd700; padding: 10px; border-radius: 10px; margin-bottom: 10px; color: black;'><strong>Você:</strong> {message['content']}</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='background-color: #1c1c1c; padding: 10px; border-radius: 10px; margin-bottom: 10px; color: white;'><strong>Bot:</strong> {message['content']}</div>", unsafe_allow_html=True)
