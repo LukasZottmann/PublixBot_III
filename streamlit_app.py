@@ -3,7 +3,7 @@ import openai
 from PyPDF2 import PdfReader
 import asyncio
 
-# Estilo personalizado
+# Estilo personalizado para o chatbot
 st.markdown(
     """
     <style>
@@ -71,6 +71,19 @@ else:
             if "history" not in st.session_state:
                 st.session_state.history = []
 
+            # Função para dividir o documento em trechos
+            def dividir_documento(texto, chunk_size=2000):
+                return [texto[i:i + chunk_size] for i in range(0, len(texto), chunk_size)]
+
+            chunks = dividir_documento(documents_text)
+
+            # Função para buscar o trecho mais relevante
+            def buscar_trecho_relevante(chunks, pergunta):
+                for chunk in chunks:
+                    if pergunta.lower() in chunk.lower():
+                        return chunk
+                return "Nenhum trecho relevante encontrado. O documento pode não conter essa informação."
+
             # Campo de mensagem do usuário
             user_input = st.text_input("Digite sua pergunta:")
             if user_input:
@@ -78,10 +91,19 @@ else:
                 st.session_state.history.append({"role": "user", "content": user_input})
 
                 async def gerar_resposta():
+                    trecho_relevante = buscar_trecho_relevante(chunks, user_input)
+
+                    # Garantir que o histórico não fique muito grande
+                    history_reduced = st.session_state.history[-5:]  # Envia apenas as últimas 5 mensagens
+
                     response = await openai.ChatCompletion.acreate(
                         model="gpt-4",
-                        messages=st.session_state.history + [{"role": "user", "content": f"Texto do documento: {documents_text[:3000]}"}],
-                        temperature=0.3
+                        messages=[
+                            {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Sempre use o texto do documento fornecido para responder de forma clara e objetiva."},
+                            *history_reduced,
+                            {"role": "user", "content": f"Trecho relevante: {trecho_relevante}"}
+                        ],
+                        temperature=0.3  # Menor temperatura para respostas mais precisas
                     )
                     return response["choices"][0]["message"]["content"]
 
