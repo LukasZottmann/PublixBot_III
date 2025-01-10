@@ -3,19 +3,20 @@ import openai
 import pdfplumber
 import asyncio
 
-st.title("💛 PublixBot Chatbot")
-st.write("Carregue documentos e faça perguntas interativas com base neles!")
+st.set_page_config(page_title="PublixBot Chatbot", layout="wide")
 
-# Entrada da API Key
-openai_api_key = st.text_input("OpenAI API Key", type="password")
+# Sidebar com chave da API e upload
+st.sidebar.title("⚙️ Configurações")
+openai_api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
+uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
+
 if not openai_api_key:
-    st.warning("Por favor, insira sua chave da OpenAI API para continuar.")
+    st.sidebar.warning("Por favor, insira sua chave da OpenAI API para continuar.")
 else:
     openai.api_key = openai_api_key
 
-    uploaded_files = st.file_uploader("Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
     if uploaded_files:
-        st.write("✅ Documentos carregados com sucesso!")
+        st.sidebar.success("✅ Documentos carregados com sucesso!")
 
         # Função de extração de texto com PDFplumber
         def extract_text_from_pdfs(files):
@@ -52,7 +53,10 @@ else:
             answer = response["choices"][0]["message"]["content"]
             st.session_state.history.append({"role": "assistant", "content": answer})
 
-        # Campo de mensagem do usuário
+        # Área principal com o campo de perguntas
+        st.title("💛 PublixBot Chatbot")
+        st.write("Faça perguntas interativas com base nos documentos enviados!")
+
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
             try:
@@ -65,7 +69,7 @@ else:
         if st.button("🗑️ Limpar histórico"):
             st.session_state.history = []
 
-        # Exibição do histórico de mensagens com `st.expander`
+        # Exibição do histórico de mensagens
         with st.expander("📜 Histórico de Mensagens", expanded=True):
             for message in st.session_state.history:
                 if message["role"] == "user":
