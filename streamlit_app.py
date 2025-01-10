@@ -35,34 +35,41 @@ else:
         # Exibir prévia do texto
         if len(documents_text) > 0:
             st.write("📝 **Prévia do texto extraído:**")
-            st.code(documents_text[:1000])  # Mostra os primeiros 1000 caracteres
+            st.code(documents_text[:500])  # Mostra os primeiros 500 caracteres
 
+        # Histórico de mensagens
         if "history" not in st.session_state:
             st.session_state.history = []
 
-        # Função para enviar as primeiras partes do texto diretamente
-        def gerar_resposta_com_texto(texto_documento, pergunta):
-            st.write("🔍 Enviando trecho completo para análise...")
-            async def gerar_resposta():
-                response = await openai.ChatCompletion.acreate(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "Você é um assistente especializado em análise de documentos PDF."},
-                        {"role": "user", "content": f"Este é um trecho do documento: {texto_documento[:3000]}. Com base nisso, responda: {pergunta}"}
-                    ],
-                    temperature=0.3
-                )
-                return response["choices"][0]["message"]["content"]
+        # Função de geração de resposta com histórico
+        async def gerar_resposta(user_input):
+            trecho_documento = documents_text[:3000]  # Enviar os primeiros 3000 caracteres
+            st.session_state.history.append({"role": "user", "content": user_input})
 
-            try:
-                answer = asyncio.run(gerar_resposta())
-                st.session_state.history.append({"role": "assistant", "content": answer})
-                st.write("✅ **Resposta gerada com sucesso:**")
-                st.code(answer)
-            except Exception as e:
-                st.error(f"Erro ao gerar a resposta: {e}")
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Sempre use o texto do documento fornecido para responder."},
+                    *st.session_state.history,
+                    {"role": "user", "content": f"Trecho do documento: {trecho_documento}\nPergunta: {user_input}"}
+                ],
+                temperature=0.3
+            )
+            answer = response["choices"][0]["message"]["content"]
+            st.session_state.history.append({"role": "assistant", "content": answer})
 
         # Campo de mensagem do usuário
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
-            gerar_resposta_com_texto(documents_text, user_input)
+            try:
+                st.write("🧠 Gerando resposta...")
+                asyncio.run(gerar_resposta(user_input))
+            except Exception as e:
+                st.error(f"Erro ao gerar a resposta: {e}")
+
+        # Exibição do histórico de mensagens no formato de chat
+        for message in st.session_state.history:
+            if message["role"] == "user":
+                st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="chat-message bot-message">{message["content"]}</div>', unsafe_allow_html=True)
