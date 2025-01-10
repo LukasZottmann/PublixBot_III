@@ -4,6 +4,9 @@ import pdfplumber
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
+# Configuração da página precisa ser o primeiro comando
+st.set_page_config(page_title="PublixBot", layout="wide")
+
 # Inicializando o modelo de embeddings semânticos
 @st.cache_resource
 def load_embedding_model():
@@ -30,8 +33,6 @@ def find_relevant_paragraphs(query, paragraphs):
     best_index = similarities.argmax()
     return paragraphs[best_index]
 
-# Interface Streamlit
-st.set_page_config(page_title="PublixBot", layout="wide")
 st.sidebar.header("Configurações")
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
 uploaded_file = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf")
@@ -59,7 +60,6 @@ def gerar_resposta(texto_usuario):
     if not uploaded_file:
         return "Por favor, carregue um documento antes de enviar perguntas."
 
-    # Encontrar parágrafo relevante
     paragrafo_relevante = find_relevant_paragraphs(texto_usuario, paragraphs)
     contexto = f"Contexto extraído do documento:\n{paragrafo_relevante}"
 
@@ -82,7 +82,6 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Campo de entrada de mensagens
 with st.container():
     user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
