@@ -1,14 +1,5 @@
 streamlit
 openai
-PyPDF2
-langchain
-faiss-cpu
-sentence-transformers
-tiktoken
-openai==0.28.0
 pdfplumber
 numpy
-pandas
-scikit-learn
-tqdm
-aiohttp
+
