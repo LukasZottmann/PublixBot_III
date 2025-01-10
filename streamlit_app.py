@@ -26,6 +26,11 @@ st.markdown(
     section.main {
         overflow-x: hidden;
     }
+    .bot-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -95,22 +100,11 @@ else:
                 answer = response["choices"][0]["message"]["content"]
                 st.session_state.history.append({"role": "assistant", "content": answer})
 
-        # Área principal com o campo de perguntas
+        # Área principal com título e histórico de mensagens
         st.title("💛 PublixBot Chatbot")
         st.write("Faça perguntas interativas com base nos documentos enviados!")
 
-        user_input = st.text_input("Digite sua pergunta:")
-        if user_input:
-            try:
-                asyncio.run(gerar_resposta(user_input))
-            except Exception as e:
-                st.error(f"Erro ao gerar a resposta: {e}")
-
-        # Botão para limpar o histórico de mensagens
-        if st.button("🗑️ Limpar histórico"):
-            st.session_state.history = []
-
-        # Exibição do histórico de mensagens com `st.expander`
+        # Exibição do histórico de mensagens
         with st.expander("📜 Histórico de Mensagens", expanded=True):
             for message in st.session_state.history:
                 if message["role"] == "user":
@@ -118,7 +112,22 @@ else:
                 else:
                     st.markdown(f"**Bot:** {message['content']}")
 
-        # Download de resumo das respostas
-        if len(st.session_state.history) > 0:
-            resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
-            st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
+        # Campo de perguntas e botões de ação
+        st.markdown("---")
+        user_input = st.text_input("💬 Digite sua mensagem aqui:")
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🗑️ Limpar histórico"):
+                st.session_state.history = []
+
+        with col2:
+            if len(st.session_state.history) > 0:
+                resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
+                st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
+
+        if user_input:
+            try:
+                asyncio.run(gerar_resposta(user_input))
+            except Exception as e:
+                st.error(f"Erro ao gerar a resposta: {e}")
