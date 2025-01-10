@@ -33,13 +33,11 @@ else:
 
         documents_text = extract_text_from_pdfs(uploaded_files)
 
-        if len(documents_text) > 0:
-            st.write("📝 **Prévia do texto extraído:**")
-            st.code(documents_text[:500])
-
+        # Histórico de mensagens
         if "history" not in st.session_state:
             st.session_state.history = []
 
+        # Função de geração de resposta
         async def gerar_resposta(user_input):
             trecho_documento = documents_text[:2000]  # Envia até 2000 caracteres
             st.session_state.history.append({"role": "user", "content": user_input})
@@ -72,4 +70,3 @@ else:
                 st.markdown(f"**Você:** {message['content']}")
             else:
                 st.markdown(f"**Bot:** {message['content']}")
-
