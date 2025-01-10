@@ -19,7 +19,7 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 
 # Inicialização das variáveis de estado
 if "mensagens_chat" not in st.session_state:
-    st.session_state.mensagens_chat = []
+    st.session_state.mensagens_chat = []  # Lista de dicionários com mensagens
 
 # Validação de chave API
 if not api_key:
@@ -74,11 +74,8 @@ if user_input:
     # Gera a resposta
     resposta_bot = gerar_resposta(user_input)
 
-    # Atualiza o chat com a nova mensagem
+    # Adiciona as mensagens como dicionários
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-
-    # Limpa o campo de entrada
-    st.session_state["user_input"] = ""
 
 # Estilo para cores e alinhamento das mensagens
 st.markdown(
@@ -116,7 +113,8 @@ st.markdown("### 📝 Chat")
 st.markdown('<div class="message-container">', unsafe_allow_html=True)
 
 for mensagem in st.session_state.mensagens_chat:
-    try:
+    # Verifica se a mensagem é um dicionário antes de tentar acessar
+    if isinstance(mensagem, dict):
         user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
         
@@ -126,7 +124,7 @@ for mensagem in st.session_state.mensagens_chat:
         st.markdown(
             f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True
         )
-    except Exception as e:
-        st.error(f"Erro ao exibir a mensagem: {e}")
+    else:
+        st.error("Mensagem inválida no histórico. Certifique-se de que todas as mensagens estejam no formato correto.")
 
 st.markdown('</div>', unsafe_allow_html=True)
