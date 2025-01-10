@@ -3,12 +3,53 @@ import openai
 import pdfplumber
 import asyncio
 
-st.set_page_config(page_title="PublixBot Chatbot", layout="wide")
+# Configuração da página
+st.set_page_config(page_title="PublixBot Chatbot", page_icon="💛", layout="wide")
 
-# Sidebar com chave da API e upload
+# Estilos personalizados
+st.markdown(
+    """
+    <style>
+    .stButton>button {
+        background-color: #ffd700;  /* Cor amarelo Publix */
+        color: black;
+        font-size: 18px;
+        border-radius: 12px;
+        padding: 10px 20px;
+    }
+    .stTextInput>div>input {
+        font-size: 18px;
+    }
+    .css-1d391kg {
+        font-family: 'Segoe UI', sans-serif;
+    }
+    section.main {
+        overflow-x: hidden;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Sidebar com chave da API e upload de PDF
 st.sidebar.title("⚙️ Configurações")
 openai_api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
+modo_escuro = st.sidebar.checkbox("🌙 Modo escuro")
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
+
+# Alternar tema claro/escuro
+if modo_escuro:
+    st.markdown(
+        """
+        <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
 if not openai_api_key:
     st.sidebar.warning("Por favor, insira sua chave da OpenAI API para continuar.")
@@ -41,17 +82,18 @@ else:
             trecho_documento = documents_text[:2000]
             st.session_state.history.append({"role": "user", "content": user_input})
 
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Responda de forma clara e concisa."},
-                    *st.session_state.history,
-                    {"role": "user", "content": f"Trecho do documento: {trecho_documento}\nPergunta: {user_input}"}
-                ],
-                temperature=0.3
-            )
-            answer = response["choices"][0]["message"]["content"]
-            st.session_state.history.append({"role": "assistant", "content": answer})
+            with st.spinner('🧠 Processando sua pergunta...'):
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Responda de forma clara e concisa."},
+                        *st.session_state.history,
+                        {"role": "user", "content": f"Trecho do documento: {trecho_documento}\nPergunta: {user_input}"}
+                    ],
+                    temperature=0.3
+                )
+                answer = response["choices"][0]["message"]["content"]
+                st.session_state.history.append({"role": "assistant", "content": answer})
 
         # Área principal com o campo de perguntas
         st.title("💛 PublixBot Chatbot")
@@ -60,7 +102,6 @@ else:
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
             try:
-                st.write("🧠 Gerando resposta...")
                 asyncio.run(gerar_resposta(user_input))
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
@@ -69,10 +110,15 @@ else:
         if st.button("🗑️ Limpar histórico"):
             st.session_state.history = []
 
-        # Exibição do histórico de mensagens
+        # Exibição do histórico de mensagens com `st.expander`
         with st.expander("📜 Histórico de Mensagens", expanded=True):
             for message in st.session_state.history:
                 if message["role"] == "user":
                     st.markdown(f"**Você:** {message['content']}")
                 else:
                     st.markdown(f"**Bot:** {message['content']}")
+
+        # Download de resumo das respostas
+        if len(st.session_state.history) > 0:
+            resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
+            st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
