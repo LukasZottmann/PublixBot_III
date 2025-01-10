@@ -2,6 +2,7 @@ import streamlit as st
 import openai
 import pdfplumber
 import asyncio
+import re
 
 st.title("💛 PublixBot Chatbot")
 st.write("Carregue documentos e faça perguntas interativas com base neles!")
@@ -37,19 +38,32 @@ else:
             st.write("📝 **Prévia do texto extraído:**")
             st.code(documents_text[:500])  # Mostra os primeiros 500 caracteres
 
-        # Histórico de mensagens
         if "history" not in st.session_state:
             st.session_state.history = []
 
-        # Função de geração de resposta com histórico
+        # Função para limpar histórico duplicado
+        def limpar_historico(history):
+            perguntas_respostas = set()
+            historico_limpo = []
+            for msg in history:
+                conteudo = msg["content"]
+                if conteudo not in perguntas_respostas:
+                    historico_limpo.append(msg)
+                    perguntas_respostas.add(conteudo)
+            return historico_limpo
+
+        # Função de geração de resposta
         async def gerar_resposta(user_input):
-            trecho_documento = documents_text[:3000]  # Enviar os primeiros 3000 caracteres
+            trecho_documento = documents_text[:2000]  # Enviar apenas os primeiros 2000 caracteres para evitar repetições
             st.session_state.history.append({"role": "user", "content": user_input})
+
+            # Limpar histórico para evitar duplicações
+            st.session_state.history = limpar_historico(st.session_state.history)
 
             response = await openai.ChatCompletion.acreate(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Sempre use o texto do documento fornecido para responder."},
+                    {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Responda de forma clara e concisa, sem repetir partes do texto ou expandir demais as explicações."},
                     *st.session_state.history,
                     {"role": "user", "content": f"Trecho do documento: {trecho_documento}\nPergunta: {user_input}"}
                 ],
