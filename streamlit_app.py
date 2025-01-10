@@ -3,7 +3,7 @@ import openai
 from PyPDF2 import PdfReader
 import asyncio
 
-# Estilo personalizado para o chatbot
+# Estilo personalizado para chatbot
 st.markdown(
     """
     <style>
@@ -63,11 +63,17 @@ else:
         # Carregar o texto do documento
         documents_text = extract_text_from_pdfs(uploaded_files)
 
+        # Exibir uma prévia do texto extraído para validação
+        if len(documents_text) > 0:
+            st.write("📝 **Prévia do texto extraído:**")
+            st.code(documents_text[:500])  # Mostra os primeiros 500 caracteres
+        else:
+            st.error("Não foi possível extrair texto do documento. O PDF pode estar escaneado.")
+
         # Verificar se há texto para análise
         if "Não foi possível extrair texto" in documents_text:
             st.error("O documento carregado parece ser um PDF escaneado ou sem texto acessível.")
         else:
-            # Histórico de mensagens
             if "history" not in st.session_state:
                 st.session_state.history = []
 
@@ -92,16 +98,14 @@ else:
 
                 async def gerar_resposta():
                     trecho_relevante = buscar_trecho_relevante(chunks, user_input)
-
-                    # Garantir que o histórico não fique muito grande
-                    history_reduced = st.session_state.history[-5:]  # Envia apenas as últimas 5 mensagens
+                    st.write("🔍 **Trecho relevante encontrado:**")
+                    st.code(trecho_relevante[:500])  # Exibe os primeiros 500 caracteres do trecho
 
                     response = await openai.ChatCompletion.acreate(
                         model="gpt-4",
                         messages=[
                             {"role": "system", "content": "Você é um assistente de análise de documentos PDF. Sempre use o texto do documento fornecido para responder de forma clara e objetiva."},
-                            *history_reduced,
-                            {"role": "user", "content": f"Trecho relevante: {trecho_relevante}"}
+                            {"role": "user", "content": f"Texto do documento: {trecho_relevante}\nPergunta: {user_input}"}
                         ],
                         temperature=0.3  # Menor temperatura para respostas mais precisas
                     )
