@@ -33,7 +33,6 @@ else:
 
         documents_text = extract_text_from_pdfs(uploaded_files)
 
-        # Exibir prévia do texto extraído
         if len(documents_text) > 0:
             st.write("📝 **Prévia do texto extraído:**")
             st.code(documents_text[:500])
@@ -41,9 +40,8 @@ else:
         if "history" not in st.session_state:
             st.session_state.history = []
 
-        # Função de geração de resposta
         async def gerar_resposta(user_input):
-            trecho_documento = documents_text[:2000]  # Limita os primeiros 2000 caracteres
+            trecho_documento = documents_text[:2000]
             st.session_state.history.append({"role": "user", "content": user_input})
 
             response = await openai.ChatCompletion.acreate(
@@ -58,7 +56,6 @@ else:
             answer = response["choices"][0]["message"]["content"]
             st.session_state.history.append({"role": "assistant", "content": answer})
 
-        # Campo de mensagem do usuário
         user_input = st.text_input("Digite sua pergunta:")
         if user_input:
             try:
@@ -67,36 +64,36 @@ else:
             except Exception as e:
                 st.error(f"Erro ao gerar a resposta: {e}")
 
-        # Estilo CSS personalizado para o histórico de mensagens com barra de rolagem
+        # Estilo corrigido com um container com barra de rolagem
         st.markdown(
             """
             <style>
             .chat-container {
-                height: 400px;  /* Altura fixa do container */
-                overflow-y: scroll;  /* Barra de rolagem vertical */
+                height: 400px;  /* Altura fixa */
+                overflow-y: auto;  /* Barra de rolagem automática */
                 border: 1px solid #666;
-                padding: 10px;
+                padding: 15px;
                 border-radius: 10px;
-                background-color: #f8f8f8;
+                background-color: #f4f4f9;
             }
             .user-bubble {
                 background-color: #ffd700;
                 color: black;
                 padding: 10px;
-                border-radius: 15px;
-                text-align: left;
-                max-width: 80%;
+                border-radius: 12px;
                 margin-bottom: 10px;
+                text-align: left;
+                max-width: 70%;
                 align-self: flex-end;
             }
             .bot-bubble {
                 background-color: #1c1c1c;
                 color: white;
                 padding: 10px;
-                border-radius: 15px;
-                text-align: left;
-                max-width: 80%;
+                border-radius: 12px;
                 margin-bottom: 10px;
+                text-align: left;
+                max-width: 70%;
                 align-self: flex-start;
             }
             </style>
@@ -105,7 +102,7 @@ else:
             unsafe_allow_html=True
         )
 
-        # Exibição das mensagens no container com rolagem
+        # Exibição das mensagens no chat com o container corrigido
         for message in st.session_state.history:
             if message["role"] == "user":
                 st.markdown(f'<div class="user-bubble">{message["content"]}</div>', unsafe_allow_html=True)
