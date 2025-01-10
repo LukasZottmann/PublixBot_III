@@ -1,67 +1,34 @@
 import streamlit as st
 import openai
-import pdfplumber
+from PyPDF2 import PdfReader
 
-st.set_page_config(page_title="PublixBot 1.5", page_icon="💛", layout="wide")
-
-# Estilo personalizado
-st.markdown("""
-    <style>
-    .stButton>button {
-        background-color: #ffd700;
-        color: black;
-        font-size: 18px;
-        border-radius: 12px;
-        padding: 10px 20px;
-    }
-    .chat-container {
-        background-color: #1e1e1e;
-        padding: 15px;
-        border-radius: 10px;
-        overflow-y: auto;
-        max-height: 400px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.sidebar.title("⚙️ Configurações")
-openai_api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
-uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
-
-# Inicialização do estado
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "documents_text" not in st.session_state:
-    st.session_state.documents_text = ""
-
-# Função para extrair texto
-def extract_text_from_pdfs(files):
-    all_text = ""
-    for file in files:
-        with pdfplumber.open(file) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text:
-                    all_text += text.replace("\n", " ") + " "
-    return all_text if all_text.strip() else "Erro ao extrair o texto do PDF."
-
-if uploaded_files:
-    st.session_state.documents_text = extract_text_from_pdfs(uploaded_files)
-
-# Função para dividir o texto em blocos menores
+# Função para dividir texto em blocos menores
 def dividir_em_blocos(texto, tamanho=1500):
-    return [texto[i:i+tamanho] for i in range(0, len(texto), tamanho)]
+    return [texto[i:i + tamanho] for i in range(0, len(texto), tamanho)]
 
-# Função para gerar resposta com blocos relevantes
+# Função para carregar o texto do PDF
+def carregar_pdf(arquivo):
+    pdf_reader = PdfReader(arquivo)
+    texto_extraido = ""
+    for pagina in pdf_reader.pages:
+        texto_extraido += pagina.extract_text() or ""
+    return texto_extraido
+
+# Função para limpar histórico de mensagens
+def limpar_historico():
+    st.session_state.history = []
+
+# Função principal de geração de resposta
 def gerar_resposta(user_input):
     if not st.session_state.documents_text:
-        st.error("Nenhum documento foi carregado.")
+        st.error("⚠️ Nenhum documento foi carregado.")
         return
 
     blocos = dividir_em_blocos(st.session_state.documents_text)
-    contexto = f"Pergunta: {user_input}\n\nTexto do documento:"
-    mensagens = [{"role": "system", "content": "Você é um assistente que analisa documentos PDF e responde com precisão."}]
-    mensagens.append({"role": "user", "content": contexto + blocos[0]})
+    contexto = f"Pergunta: {user_input}\n\nTexto do documento:\n{blocos[0]}"
+
+    mensagens = [{"role": "system", "content": "Você é um assistente especializado em análise de documentos."}]
+    mensagens.append({"role": "user", "content": contexto})
 
     try:
         with st.spinner('🧠 Processando sua pergunta...'):
@@ -70,42 +37,48 @@ def gerar_resposta(user_input):
                 messages=mensagens,
                 temperature=0.3
             )
-            answer = response["choices"][0]["message"]["content"]
-            st.session_state.history.append({"role": "assistant", "content": answer})
+            resposta = response["choices"][0]["message"]["content"]
+            st.session_state.history.append({"role": "user", "content": user_input})
+            st.session_state.history.append({"role": "assistant", "content": resposta})
     except Exception as e:
-        st.error(f"Erro ao gerar a resposta: {e}")
+        st.error(f"❌ Erro ao gerar a resposta: {e}")
+        st.write("🚨 Detalhes do erro:", e)
 
-# Interface do usuário
-st.title("💛 PublixBot 1.5")
-st.write("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento, ela é especialista em administração pública, fique à vontade para perguntar qualquer coisa!")
+# Layout do aplicativo
+st.set_page_config(page_title="PublixBot 1.5", page_icon="💛", layout="wide")
 
-# Exibir histórico de mensagens
-st.markdown("---")
-st.write("📝 **Histórico de Mensagens:**")
-chat_container = st.container()
+# Sidebar com configurações
+with st.sidebar:
+    st.header("⚙️ Configurações")
+    api_key = st.text_input("OpenAI API Key", type="password", placeholder="Insira sua chave API...")
+    st.file_uploader("Faça upload de documentos (.pdf)", type=["pdf"], on_change=limpar_historico, key="upload_file")
 
-with chat_container:
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for message in st.session_state.history:
-        if message["role"] == "user":
-            st.markdown(f'<div class="user-message">**Você:** {message["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-message">**Bot:** {message["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+if api_key:
+    openai.api_key = api_key
 
-st.markdown("---")
-user_input = st.text_input("💬 Digite sua mensagem aqui:")
+    # Verifica se há arquivos carregados
+    if st.session_state.upload_file is not None:
+        st.session_state.documents_text = carregar_pdf(st.session_state.upload_file)
+        st.success("✅ Documentos carregados com sucesso!")
 
-if user_input:
-    st.session_state.history.append({"role": "user", "content": user_input})
-    gerar_resposta(user_input)
+        # Exibição do histórico de mensagens
+        st.subheader("📄 Histórico de Mensagens:")
+        if "history" not in st.session_state:
+            st.session_state.history = []
 
-col1, col2 = st.columns([1, 1])
-with col1:
-    if st.button("🗑️ Limpar histórico"):
-        st.session_state.history = []
+        for msg in st.session_state.history:
+            role_style = "background-color: #FFDD44; color: black; padding: 10px; border-radius: 5px;" if msg["role"] == "user" else "background-color: #2C2C2C; color: white; padding: 10px; border-radius: 5px;"
+            st.markdown(f"<div style='{role_style}'>{msg['content']}</div>", unsafe_allow_html=True)
 
-with col2:
-    if len(st.session_state.history) > 0:
-        resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
-        st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
+        # Campo de entrada de pergunta
+        st.text_input("📝 Digite sua mensagem aqui:", key="user_input", on_change=gerar_resposta, args=(st.session_state.user_input,))
+
+        # Botões de ação
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.button("🗑️ Limpar histórico", on_click=limpar_historico)
+        with col2:
+            st.download_button("📥 Baixar Resumo", data="\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history]), file_name="historico_resumo.txt", mime="text/plain")
+
+else:
+    st.warning("⚠️ Por favor, insira sua chave de API OpenAI para começar.")
