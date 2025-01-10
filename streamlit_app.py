@@ -29,7 +29,7 @@ openai.api_key = api_key
 
 # Exibição do texto e entrada de mensagens
 st.title("💛 PublixBot 1.5")
-st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento. Ela é especialista em administração pública. Pergunte qualquer coisa!")
+st.subheader("Pergunte qualquer coisa com base no conteúdo dos documentos!")
 
 # Upload e leitura de PDF
 if uploaded_file:
@@ -49,20 +49,18 @@ Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com ba
 
 Contexto do documento:
 {document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
+Pergunta do usuário: {texto_usuario}
 """
-    mensagens = [
-        {"role": "system", "content": contexto},
-        {"role": "user", "content": texto_usuario}
-    ]
-
+    
     try:
-        resposta = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=mensagens,
+        # Usando a API de completions compatível com a versão 0.28
+        resposta = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=contexto,
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["message"]["content"]
+        mensagem_final = resposta["choices"][0]["text"].strip()
 
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
@@ -75,6 +73,7 @@ with st.container():
     user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
+        st.markdown(f"**Resposta:** {resposta_bot}")
 
 # Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
