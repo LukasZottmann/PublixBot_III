@@ -17,7 +17,7 @@ st.sidebar.header("Configurações")
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
 
-# Variáveis de estado para o chat
+# Inicialização das variáveis de estado
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []
 
@@ -71,18 +71,17 @@ def gerar_resposta(texto_usuario):
         return f"Erro ao gerar a resposta: {e}"
 
 # Entrada do usuário e exibição contínua do chat
-with st.container():
-    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
-    if user_input:
-        # Gera a resposta
-        resposta_bot = gerar_resposta(user_input)
+user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
+if user_input:
+    # Gera a resposta
+    resposta_bot = gerar_resposta(user_input)
 
-        # Atualiza o chat com a nova mensagem
-        st.session_state.mensagens_chat.append(f"**Você:** {user_input}")
-        st.session_state.mensagens_chat.append(f"**Bot:** {resposta_bot}")
+    # Atualiza o chat com a nova mensagem
+    st.session_state.mensagens_chat.append(f"**Você:** {user_input}")
+    st.session_state.mensagens_chat.append(f"**Bot:** {resposta_bot}")
 
-        # Limpa o campo de entrada sem reiniciar a aplicação
-        st.session_state["user_input"] = ""
+    # Limpa o campo de entrada com segurança
+    st.session_state.user_input = ""
 
 # Exibe o chat contínuo
 st.markdown("### 📝 Chat")
