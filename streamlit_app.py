@@ -56,8 +56,8 @@ Contexto do documento:
     ]
 
     try:
-        resposta = openai.ChatCompletion.acreate(  # Atualizado para a nova versão
-            model="gpt-4",
+        resposta = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Altere para "gpt-4" se preferir usar o modelo mais avançado
             messages=mensagens,
             temperature=0.3,
             max_tokens=1000
@@ -75,6 +75,8 @@ with st.container():
     user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
+        if resposta_bot:
+            st.success("Resposta enviada!")
 
 # Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
