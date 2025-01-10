@@ -1,9 +1,6 @@
 import streamlit as st
 import openai
 import pdfplumber
-from langchain.vectorstores.faiss import FAISS
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Função para extrair texto do PDF
 def extract_text_from_pdf(pdf_file):
@@ -13,15 +10,7 @@ def extract_text_from_pdf(pdf_file):
             text += page.extract_text() or ""
     return text
 
-# Função para criar index FAISS a partir do texto do documento
-def create_faiss_index(text):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    chunks = splitter.split_text(text)
-    embeddings = OpenAIEmbeddings(openai_api_key=openai.api_key)
-    index = FAISS.from_texts(chunks, embeddings)
-    return index
-
-# Configuração da interface Streamlit
+# Configuração da interface
 st.set_page_config(page_title="PublixBot", layout="wide")
 st.sidebar.header("Configurações")
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
@@ -30,8 +19,6 @@ uploaded_file = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)
 # Variáveis de estado
 if "historico_mensagens" not in st.session_state:
     st.session_state.historico_mensagens = []
-if "index" not in st.session_state:
-    st.session_state.index = None
 
 # Validação de chave API
 if not api_key:
@@ -40,35 +27,35 @@ if not api_key:
 
 openai.api_key = api_key
 
-# Exibição do título e informações iniciais
+# Exibição do texto e entrada de mensagens
 st.title("💛 PublixBot 1.5")
 st.subheader("Essa é a inteligência artificial desenvolvida pelo Instituto Publix, pré-treinada com nosso conhecimento. Ela é especialista em administração pública. Pergunte qualquer coisa!")
 
 # Upload e leitura de PDF
 if uploaded_file:
     document_text = extract_text_from_pdf(uploaded_file)
-    st.session_state.index = create_faiss_index(document_text)
-    st.success("📥 Documento carregado e indexado com sucesso!")
+    st.success("📥 Documento carregado com sucesso!")
 else:
     st.warning("Carregue um documento para começar.")
 
 # Função de geração de resposta
 def gerar_resposta(texto_usuario):
-    if not st.session_state.index:
+    if not uploaded_file:
         return "Por favor, carregue um documento antes de enviar perguntas."
 
+    contexto = f"""
+Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
+Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
+
+Contexto do documento:
+{document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
+"""
+    mensagens = [
+        {"role": "system", "content": contexto},
+        {"role": "user", "content": texto_usuario}
+    ]
+
     try:
-        # Busca os trechos mais semelhantes
-        similar_docs = st.session_state.index.similarity_search(texto_usuario, k=3)
-        contexto = "\n\n".join([doc.page_content for doc in similar_docs])
-
-        # Monta a mensagem com o contexto relevante
-        mensagens = [
-            {"role": "system", "content": f"Base de dados: {contexto}"},
-            {"role": "user", "content": texto_usuario}
-        ]
-
-        # Geração da resposta com OpenAI
         resposta = openai.ChatCompletion.create(
             model="gpt-4",
             messages=mensagens,
@@ -77,21 +64,19 @@ def gerar_resposta(texto_usuario):
         )
         mensagem_final = resposta["choices"][0]["message"]["content"]
 
-        # Armazena a conversa no histórico
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
 
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Interface de entrada do usuário
+# Entrada do usuário
 with st.container():
-    user_input = st.text_input("💬 Digite sua mensagem aqui:")
+    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
     if user_input:
         resposta_bot = gerar_resposta(user_input)
-        st.write(f"**Resposta:** {resposta_bot}")
 
-# Exibição do histórico de mensagens
+# Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
 st.markdown(
     """
