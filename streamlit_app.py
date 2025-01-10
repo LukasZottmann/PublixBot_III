@@ -3,84 +3,109 @@ import openai
 from PyPDF2 import PdfReader
 import asyncio
 
-# Estilo personalizado com CSS (sem bordas amarelas)
+# Estilo personalizado
 st.markdown(
     """
     <style>
-    body {
-        background-color: #000000; /* Fundo preto */
-        color: #ffffff; /* Texto branco */
-    }
     .stApp {
-        background-color: #000000; /* Fundo preto */
+        background-color: #000000;
+        color: #ffffff;
     }
-    .css-1q8dd3e p, .css-1q8dd3e h1, .css-1q8dd3e h2 {
-        color: #ffd700 !important; /* Amarelo dourado nos títulos */
+    .chat-message {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
     }
-    .stButton > button {
-        background-color: #ffd700 !important; /* Botão amarelo */
-        color: #000000 !important; /* Texto preto nos botões */
-        border: none !important; /* Sem borda nos botões */
+    .user-message {
+        background-color: #ffd700;
+        color: #000;
+        text-align: left;
     }
-    .stTextInput, .stTextArea, .stFileUploader {
-        background-color: #1c1c1c !important; /* Fundo preto nas caixas */
-        color: #ffd700 !important; /* Texto amarelo */
-        border: none !important; /* Remove a borda das caixas */
-    }
-    .stAlert {
-        background-color: #333333 !important; /* Fundo das mensagens */
-        color: #ffffff !important; /* Texto das mensagens */
+    .bot-message {
+        background-color: #1c1c1c;
+        color: #fff;
+        text-align: left;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("💛 PublixBot")
-st.write(
-    """
-    Olá, sou uma inteligência artificial pré-treinada desenvolvida pelo Instituto Publix para armazenar documentos importantes e te dar respostas com base neles.
-    Para usar este aplicativo, você precisará de uma chave da API OpenAI.
-    """
-)
+# Título
+st.title("💛 PublixBot Chatbot")
+st.write("Carregue documentos e faça perguntas interativas com base neles!")
 
+# Entrada de API Key
 openai_api_key = st.text_input("OpenAI API Key", type="password")
-
 if not openai_api_key:
     st.warning("Por favor, insira sua chave da OpenAI API para continuar.")
 else:
     openai.api_key = openai_api_key
 
+    # Upload de PDFs
     uploaded_files = st.file_uploader("Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
-    question = st.text_area("Digite sua pergunta:", placeholder="Exemplo: Qual o resumo do documento?")
+    if uploaded_files:
+        st.write("✅ Documentos carregados com sucesso!")
 
-    def extract_text_from_pdfs(files):
-        all_text = ""
-        for file in files:
-            reader = PdfReader(file)
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    all_text += text
-        return all_text
+        # Função para extrair texto dos PDFs
+        def extract_text_from_pdfs(files):
+            all_text = ""
+            for file in files:
+                reader = PdfReader(file)
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        all_text += text
+            return all_text
 
-    if uploaded_files and question:
-        st.write("🔄 Extraindo texto dos documentos...")
+        # Carregar o texto do documento
         documents_text = extract_text_from_pdfs(uploaded_files)
+        
+        # Divisão do texto em partes
+        def dividir_documento(texto, chunk_size=2000):
+            return [texto[i:i + chunk_size] for i in range(0, len(texto), chunk_size)]
 
-        async def gerar_resposta():
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Você é uma inteligência artificial desenvolvida pelo Instituto Publix especialista em gestão pública e política organizacional. Responda de forma completa e clara, citando exemplos do documento quando aplicável e estruturando a resposta com parágrafos organizados. Caso não encontre informações suficientes, peça mais detalhes."},
-                    {"role": "user", "content": f"Texto do documento: {documents_text[:3000]} \n\nPergunta: {question}"}
-                ]
-            )
-            return response["choices"][0]["message"]["content"]
+        chunks = dividir_documento(documents_text)
 
-        try:
-            st.write("🧠 Gerando resposta...")
-            answer = asyncio.run(gerar_resposta())
-            st.success(f"**Resposta:** {answer}")
-        except Exception as e:
-            st.error(f"Erro ao gerar a resposta: {e}")
+        # Histórico de mensagens
+        if "history" not in st.session_state:
+            st.session_state.history = []
+
+        # Campo de mensagem do usuário
+        user_input = st.text_input("Digite sua pergunta:")
+        if user_input:
+            # Adiciona a mensagem do usuário no histórico
+            st.session_state.history.append({"role": "user", "content": user_input})
+
+            # Função para obter o trecho relevante
+            def buscar_trecho_relevante(chunks, pergunta):
+                for chunk in chunks:
+                    if pergunta.lower() in chunk.lower():
+                        return chunk
+                return chunks[0]
+
+            trecho_relevante = buscar_trecho_relevante(chunks, user_input)
+
+            async def gerar_resposta():
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-4",
+                    messages=st.session_state.history + [{"role": "user", "content": f"Trecho relevante: {trecho_relevante}"}],
+                    temperature=0.3
+                )
+                return response["choices"][0]["message"]["content"]
+
+            # Geração da resposta
+            try:
+                st.write("🧠 Gerando resposta...")
+                answer = asyncio.run(gerar_resposta())
+                st.session_state.history.append({"role": "assistant", "content": answer})
+            except Exception as e:
+                st.error(f"Erro ao gerar a resposta: {e}")
+
+        # Exibição do histórico de mensagens no formato de chat
+        for message in st.session_state.history:
+            if message["role"] == "user":
+                st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="chat-message bot-message">{message["content"]}</div>', unsafe_allow_html=True)
+
