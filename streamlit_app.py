@@ -49,18 +49,20 @@ Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com ba
 
 Contexto do documento:
 {document_text[:2000]}  # Limite de caracteres para não sobrecarregar a mensagem
-Pergunta do usuário: {texto_usuario}
 """
-    
+
     try:
-        # Usando a API de completions compatível com a versão 0.28
-        resposta = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=contexto,
+        # Usando `gpt-3.5-turbo`
+        resposta = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": contexto},
+                {"role": "user", "content": texto_usuario}
+            ],
             temperature=0.3,
             max_tokens=1000
         )
-        mensagem_final = resposta["choices"][0]["text"].strip()
+        mensagem_final = resposta["choices"][0]["message"]["content"]
 
         st.session_state.historico_mensagens.append({"user": texto_usuario, "bot": mensagem_final})
         return mensagem_final
