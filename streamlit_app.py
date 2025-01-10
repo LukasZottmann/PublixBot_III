@@ -50,6 +50,12 @@ st.sidebar.title("⚙️ Configurações")
 openai_api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type=["pdf"], accept_multiple_files=True)
 
+# Inicialização do estado
+if "history" not in st.session_state:
+    st.session_state.history = []  # Lista vazia para mensagens
+if "documents_text" not in st.session_state:
+    st.session_state.documents_text = ""
+
 if not openai_api_key:
     st.sidebar.warning("Por favor, insira sua chave da OpenAI API para continuar.")
 else:
@@ -68,14 +74,11 @@ else:
                             all_text += text + "\n"
             return all_text if all_text.strip() else "Não foi possível extrair texto do PDF."
 
-        documents_text = extract_text_from_pdfs(uploaded_files)
-
-        if "history" not in st.session_state:
-            st.session_state.history = []
+        st.session_state.documents_text = extract_text_from_pdfs(uploaded_files)
 
         # Função para gerar a resposta com histórico
         def gerar_resposta(user_input):
-            trecho_documento = documents_text[:2000]
+            trecho_documento = st.session_state.documents_text[:2000]
             st.session_state.history.append({"role": "user", "content": user_input})
 
             try:
@@ -106,11 +109,14 @@ else:
 
         with chat_container:
             st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-            for message in st.session_state.history:
-                if message["role"] == "user":
-                    st.markdown(f'<div class="user-message">**Você:** {message["content"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="bot-message">**Bot:** {message["content"]}</div>', unsafe_allow_html=True)
+            if len(st.session_state.history) == 0:
+                st.markdown('<div class="bot-message">💡 O histórico está vazio. Envie uma mensagem para começar!</div>', unsafe_allow_html=True)
+            else:
+                for message in st.session_state.history:
+                    if message["role"] == "user":
+                        st.markdown(f'<div class="user-message">**Você:** {message["content"]}</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="bot-message">**Bot:** {message["content"]}</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Campo de pergunta e botões
@@ -129,4 +135,3 @@ else:
             if len(st.session_state.history) > 0:
                 resumo = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in st.session_state.history])
                 st.download_button("📄 Baixar Resumo", resumo, file_name="resumo_resposta.txt")
-
