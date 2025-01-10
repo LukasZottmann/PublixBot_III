@@ -70,19 +70,61 @@ Contexto do documento:
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário
-with st.container():
-    user_input = st.text_input("💬 Digite sua mensagem aqui:", key="user_input")
-    if user_input:
-        resposta_bot = gerar_resposta(user_input)
+# Entrada do usuário com formulário de envio
+with st.form("formulario_chat"):
+    user_input = st.text_input("💬 Digite sua mensagem aqui:")
+    submit_button = st.form_submit_button("Enviar")
+    
+    if submit_button and user_input:
+        try:
+            st.write("Processando pergunta...")  # Log visível na interface
+            resposta_bot = gerar_resposta(user_input)
+            st.session_state.historico_mensagens.append({"user": user_input, "bot": resposta_bot})
+            st.success("Resposta enviada!")
+        except Exception as e:
+            st.error(f"Erro ao processar: {e}")
 
-# Histórico de mensagens
+# Histórico de mensagens com estilos customizados
 st.subheader("📝 Histórico de Mensagens:")
+st.markdown(
+    """
+    <style>
+    .user-question {
+        background-color: #FFEB3B;  /* Amarelo claro */
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    .bot-response {
+        background-color: transparent;  /* Transparente, volta ao fundo padrão */
+        padding: 10px;
+        border-radius: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 for msg in st.session_state.historico_mensagens:
-    st.markdown(f"**Você:** {msg['user']}")
-    st.markdown(f"**Bot:** {msg['bot']}")
+    st.markdown(f'<div class="user-question">**Você:** {msg["user"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bot-response">**Bot:** {msg["bot"]}</div>', unsafe_allow_html=True)
 
 # Botões de limpar histórico e baixar resumo
-if st.button("🗑️ Limpar histórico"):
-    st.session_state.historico_mensagens = []
-    st.success("Histórico limpo com sucesso!")
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🗑️ Limpar histórico"):
+        st.session_state.historico_mensagens = []
+        st.success("Histórico limpo com sucesso!")
+
+with col2:
+    if st.button("📄 Baixar Resumo"):
+        if st.session_state.historico_mensagens:
+            resumo_texto = "\n".join(f"Pergunta: {msg['user']}\nResposta: {msg['bot']}" for msg in st.session_state.historico_mensagens)
+            st.download_button(
+                "Baixar resumo",
+                data=resumo_texto,
+                file_name="resumo_chat.txt",
+                mime="text/plain"
+            )
+        else:
+            st.warning("Nenhuma conversa para baixar o resumo.")
