@@ -76,47 +76,13 @@ with st.container():
     if user_input:
         resposta_bot = gerar_resposta(user_input)
 
-# Histórico de mensagens com estilos customizados
+# Histórico de mensagens
 st.subheader("📝 Histórico de Mensagens:")
-st.markdown(
-    """
-    <style>
-    .user-question {
-        background-color: #FFEB3B;  /* Amarelo claro */
-        padding: 10px;
-        border-radius: 10px;
-        font-weight: bold;
-    }
-    .bot-response {
-        background-color: transparent;  /* Transparente, volta ao fundo padrão */
-        padding: 10px;
-        border-radius: 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 for msg in st.session_state.historico_mensagens:
-    st.markdown(f'<div class="user-question">**Você:** {msg["user"]}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="bot-response">**Bot:** {msg["bot"]}</div>', unsafe_allow_html=True)
+    st.markdown(f"**Você:** {msg['user']}")
+    st.markdown(f"**Bot:** {msg['bot']}")
 
 # Botões de limpar histórico e baixar resumo
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🗑️ Limpar histórico"):
-        st.session_state.historico_mensagens = []
-        st.success("Histórico limpo com sucesso!")
-
-with col2:
-    if st.button("📄 Baixar Resumo"):
-        if st.session_state.historico_mensagens:
-            resumo_texto = "\n".join(f"Pergunta: {msg['user']}\nResposta: {msg['bot']}" for msg in st.session_state.historico_mensagens)
-            st.download_button(
-                "Baixar resumo",
-                data=resumo_texto,
-                file_name="resumo_chat.txt",
-                mime="text/plain"
-            )
-        else:
-            st.warning("Nenhuma conversa para baixar o resumo.")
+if st.button("🗑️ Limpar histórico"):
+    st.session_state.historico_mensagens = []
+    st.success("Histórico limpo com sucesso!")
