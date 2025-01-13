@@ -86,7 +86,7 @@ if user_input:
     # Adiciona as mensagens como dicionários
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
 
-# Estilo para cores, barra de rolagem e alinhamento das mensagens
+# Estilo para cores e alinhamento das mensagens
 st.markdown(
     """
     <style>
@@ -108,19 +108,16 @@ st.markdown(
         color: #33691E;
     }
     .message-container {
-        max-height: 500px;  /* Altura máxima para ativar a barra de rolagem */
-        overflow-y: auto;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        background-color: #FAFAFA;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Exibe o chat com barra de rolagem, alinhamento e cores
+# Exibe o chat com alinhamento e cores
 st.markdown("### 📝 Chat")
 st.markdown('<div class="message-container">', unsafe_allow_html=True)
 
@@ -130,10 +127,10 @@ for mensagem in st.session_state.mensagens_chat:
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
         
         st.markdown(
-            f'<div class="user-question"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True
+            f'<div class="user-question">Você: {user_msg}</div>', unsafe_allow_html=True
         )
         st.markdown(
-            f'<div class="bot-response"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True
+            f'<div class="bot-response">Bot: {bot_msg}</div>', unsafe_allow_html=True
         )
     else:
         st.error("Mensagem inválida no histórico. Certifique-se de que todas as mensagens estejam no formato correto.")
