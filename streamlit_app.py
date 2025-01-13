@@ -94,13 +94,18 @@ for mensagem in st.session_state.mensagens_chat:
     st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #1e90ff; color: white; border-radius: 10px;"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
     st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #32cd32; color: white; border-radius: 10px;"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
-# Campo de entrada de mensagem e botões logo abaixo do chat
-st.markdown("---")  # Linha divisória
-with st.form(key="input_form"):
-    st.session_state.pending_input = st.text_input("💬 Sua pergunta:", value=st.session_state.pending_input)
-    submit_button = st.form_submit_button("Enviar")
+# Entrada de mensagem direta, sem formulário
+st.markdown("---")
+user_input = st.text_area("💬 Sua pergunta:", key="user_input", height=50)
 
-# Botões abaixo do campo de perguntas
+if user_input:
+    resposta_bot = gerar_resposta(user_input)
+    st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+    st.session_state.user_input = ""  # Limpa o campo de entrada após envio
+    # Força atualização imediata da interface
+    st.experimental_set_query_params(update="true")
+
+# Botões abaixo da área de perguntas
 col1, col2 = st.columns(2)
 with col1:
     if st.button("🧹 Limpar histórico de mensagens"):
@@ -114,9 +119,3 @@ with col2:
                 f.write(f"Bot: {msg['bot']}\n\n")
         with open("chat_history.txt", "rb") as f:
             st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
-
-# Processa a entrada do formulário após envio
-if submit_button and st.session_state.pending_input:
-    resposta_bot = gerar_resposta(st.session_state.pending_input)
-    st.session_state.mensagens_chat.append({"user": st.session_state.pending_input, "bot": resposta_bot})
-    st.session_state.pending_input = ""  # Limpa o campo de entrada após envio
