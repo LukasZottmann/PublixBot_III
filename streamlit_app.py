@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 import pdfplumber
+import os
 
 # Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
@@ -16,61 +17,86 @@ def extract_text_from_pdfs(uploaded_files):
             combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
     return combined_text, document_map
 
-# Configuração da interface
-st.set_page_config(page_title="PublixBot", layout="wide")
-st.sidebar.header("Configurações")
-api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password")
-uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
-
-# Inicialização das variáveis de estado
-if "mensagens_chat" not in st.session_state:
-    st.session_state.mensagens_chat = []  # Lista de mensagens
-if "document_text" not in st.session_state:
-    st.session_state.document_text = ""  # Texto combinado dos documentos
-if "document_map" not in st.session_state:
-    st.session_state.document_map = {}  # Mapa de documentos por nome
-
-# Validação de chave API
-if not api_key:
-    st.warning("Por favor, insira sua chave de API.")
-    st.stop()
-
-openai.api_key = api_key
-
-# Exibição do título e upload de documentos
-st.title("💛 PublixBot 1.5")
-st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
-
-if uploaded_files:
-    st.session_state.document_text, st.session_state.document_map = extract_text_from_pdfs(uploaded_files)
-    st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
-else:
-    st.warning("Carregue documentos para começar.")
-
-# Função de geração de resposta
+# Função para gerar resposta
 def gerar_resposta(texto_usuario):
-    if not uploaded_files:
+    if not st.session_state.document_map:
         return "Por favor, carregue documentos antes de enviar perguntas."
 
-    contexto = "Você é uma IA especializada em administração pública.\n"
-    contexto += "Baseie suas respostas nos seguintes documentos:\n\n"
+    contexto = "Você é uma IA especializada em administração pública. Baseie suas respostas nos seguintes documentos:\n\n"
     for nome_documento, text in st.session_state.document_map.items():
         contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"
 
     mensagens = [{"role": "system", "content": contexto}, {"role": "user", "content": texto_usuario}]
 
     try:
-        resposta = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=mensagens,
-            temperature=0.3,
-            max_tokens=1500
-        )
-        return resposta["choices"][0]["message"]["content"]
+        with st.spinner('💡 Processando sua pergunta, um momento...'):
+            resposta = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=mensagens,
+                temperature=0.3,
+                max_tokens=1500
+            )
+            return resposta["choices"][0]["message"]["content"]
+    except openai.error.AuthenticationError:
+        return "Erro de autenticação: verifique sua chave de API."
+    except openai.error.APIConnectionError:
+        return "Erro de conexão com a API: verifique sua conexão com a internet."
     except Exception as e:
-        return f"Erro ao gerar a resposta: {e}"
+        return f"Erro ao gerar a resposta: {str(e)}"
 
-# Estilo customizado para a área de chat
+# Configuração inicial
+st.set_page_config(page_title="PublixBot", layout="wide")
+st.sidebar.header("Configurações")
+api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
+save_api_key = st.sidebar.checkbox("Salvar API Key localmente")
+
+if save_api_key:
+    st.success("Chave de API salva com sucesso!")
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key  # Salva na variável de ambiente temporariamente
+else:
+    openai.api_key = api_key
+
+uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
+
+# Inicialização das variáveis de estado
+if "mensagens_chat" not in st.session_state:
+    st.session_state.mensagens_chat = []  # Histórico de mensagens
+if "document_text" not in st.session_state:
+    st.session_state.document_text = ""  # Texto combinado dos documentos
+if "document_map" not in st.session_state:
+    st.session_state.document_map = {}  # Mapa de documentos por nome
+
+st.title("💛 PublixBot 2.0 - Mais Inteligente e Interativo!")
+st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
+
+if uploaded_files:
+    st.session_state.document_text, st.session_state.document_map = extract_text_from_pdfs(uploaded_files)
+    st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
+
+    # Exibição de prévia dos documentos carregados
+    with st.expander("📄 Visualizar documentos carregados"):
+        for nome_documento, conteudo in st.session_state.document_map.items():
+            st.markdown(f"**{nome_documento}** - Prévia das primeiras 500 palavras:")
+            st.text_area(f"Conteúdo de {nome_documento}", conteudo[:500], height=200, disabled=True)
+else:
+    st.warning("Carregue documentos para começar.")
+
+# Botão para limpar histórico
+if st.button("🧹 Limpar histórico de mensagens"):
+    st.session_state.mensagens_chat = []
+    st.success("Histórico de mensagens limpo com sucesso!")
+
+# Botão para baixar histórico
+if st.button("📥 Baixar histórico do chat"):
+    with open("chat_history.txt", "w") as f:
+        for msg in st.session_state.mensagens_chat:
+            f.write(f"Você: {msg['user']}\n")
+            f.write(f"Bot: {msg['bot']}\n\n")
+    with open("chat_history.txt", "rb") as f:
+        st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
+
+# Estilo customizado da área de chat
 st.markdown("""
 <style>
 .scroll-container {
@@ -99,6 +125,14 @@ st.markdown("""
     color: #065f46;
     text-align: left;
 }
+
+.upload-container {
+    background-color: #f9fafb;
+    border: 2px dashed #9ca3af;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -107,7 +141,6 @@ st.markdown("### 📝 Chat")
 with st.container():
     st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
     
-    # Exibição do histórico de mensagens dentro do contêiner rolável
     for mensagem in st.session_state.mensagens_chat:
         user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
@@ -116,10 +149,11 @@ with st.container():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Campo de entrada de mensagem fora do bloco rolável, mas na mesma área do contêiner
+# Campo de entrada de mensagem
 with st.form(key="input_form"):
     user_input = st.text_input("💬 Sua pergunta:", key="input_text")
     submit_button = st.form_submit_button("Enviar")
     if submit_button and user_input:
         resposta_bot = gerar_resposta(user_input)
         st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+        st.experimental_rerun()  # Atualiza para exibir imediatamente
