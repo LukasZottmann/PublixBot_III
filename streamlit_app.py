@@ -59,15 +59,17 @@ else:
 
 uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
 
-# Inicialização das variáveis de estado
+# Inicialização segura das variáveis de estado
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []  # Histórico de mensagens
 if "document_text" not in st.session_state:
     st.session_state.document_text = ""  # Texto combinado dos documentos
 if "document_map" not in st.session_state:
     st.session_state.document_map = {}  # Mapa de documentos por nome
+if "pending_input" not in st.session_state:
+    st.session_state.pending_input = ""  # Texto temporário do formulário
 
-st.title("💛 PublixBot 2.0 - Mais Inteligente e Interativo!")
+st.title("💛 PublixBot 2.1 - Mais Inteligente e Interativo!")
 st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
@@ -149,11 +151,13 @@ with st.container():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Campo de entrada de mensagem
+# Campo de entrada de mensagem com formulário
 with st.form(key="input_form"):
-    user_input = st.text_input("💬 Sua pergunta:", key="input_text")
+    st.session_state.pending_input = st.text_input("💬 Sua pergunta:", value=st.session_state.pending_input)
     submit_button = st.form_submit_button("Enviar")
-    if submit_button and user_input:
-        resposta_bot = gerar_resposta(user_input)
-        st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-        st.session_state["input_text"] = ""  # Limpa o campo de entrada após envio
+
+# Processa a entrada do formulário após envio
+if submit_button and st.session_state.pending_input:
+    resposta_bot = gerar_resposta(st.session_state.pending_input)
+    st.session_state.mensagens_chat.append({"user": st.session_state.pending_input, "bot": resposta_bot})
+    st.session_state.pending_input = ""  # Limpa o campo de entrada fora do formulário
