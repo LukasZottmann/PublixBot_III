@@ -70,21 +70,25 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário
-user_input = st.text_input("💬 Digite sua mensagem aqui:")
+# Interface do chat
+st.markdown("### 📝 Chat")
+
+with st.container():
+    chat_container = st.container()
+    with chat_container:
+        chat_text = ""
+        if len(st.session_state.mensagens_chat) > 0:
+            for mensagem in st.session_state.mensagens_chat:
+                user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+                bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+                chat_text += f"**Você:** {user_msg}\n\n**Bot:** {bot_msg}\n\n---\n"
+            st.text_area("📋 Chat:", value=chat_text, height=400, key="chat_scroll", disabled=True)
+        else:
+            st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
+
+    # Campo de entrada de mensagem logo abaixo do chat
+    user_input = st.text_input("💬 Sua pergunta:")
 
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-
-# Interface do chat com barra de rolagem usando `st.container` e `st.text_area`
-with st.container():
-    if len(st.session_state.mensagens_chat) > 0:
-        chat_text = ""
-        for mensagem in st.session_state.mensagens_chat:
-            user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-            bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-            chat_text += f"**Você:** {user_msg}\n\n**Bot:** {bot_msg}\n\n---\n"
-        st.text_area("📝 Histórico do Chat", value=chat_text, height=400, max_chars=None, key="chat_history", disabled=True)
-    else:
-        st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
