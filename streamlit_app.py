@@ -70,7 +70,7 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Estilo customizado
+# Estilo customizado para a área de chat
 st.markdown("""
 <style>
 .scroll-container {
@@ -98,27 +98,31 @@ st.markdown("""
     margin: 10px 0;
     border-radius: 10px;
 }
+
+.input-container {
+    margin-top: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # Caixa de chat com barra de rolagem para conter perguntas e respostas
 st.markdown("### 📝 Chat")
-st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
-
-# Conteúdo dentro do chat (perguntas e respostas)
-for mensagem in st.session_state.mensagens_chat:
-    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    
-    st.markdown(f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Campo de entrada de mensagem dentro do contêiner geral
 with st.container():
-    user_input = st.text_input("💬 Sua pergunta:")
+    st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
+    
+    # Exibição do histórico de mensagens
+    for mensagem in st.session_state.mensagens_chat:
+        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+        st.markdown(f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if user_input:
-        resposta_bot = gerar_resposta(user_input)
-        st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+    # Campo de entrada de mensagem no final do contêiner
+    with st.form(key="chat_input_form"):
+        user_input = st.text_input("💬 Sua pergunta:", key="user_input")
+        submit_button = st.form_submit_button("Enviar")
+        if submit_button and user_input:
+            resposta_bot = gerar_resposta(user_input)
+            st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
