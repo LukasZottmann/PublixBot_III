@@ -70,20 +70,22 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Estilo customizado para diferenciar as mensagens
+# Estilo customizado para manter a barra de rolagem e destacar as mensagens
 st.markdown("""
 <style>
-.chat-box {
+.scroll-container {
+    height: 400px;
+    overflow-y: auto;
     background-color: #f5f5f5;
     padding: 15px;
     border-radius: 10px;
-    margin-bottom: 10px;
 }
 
 .user-question {
     background-color: #D0E9FF;
     color: #004085;
     padding: 10px;
+    margin: 5px 0;
     border-radius: 10px;
     font-weight: bold;
 }
@@ -92,6 +94,7 @@ st.markdown("""
     background-color: #DFF5D8;
     color: #2E7D32;
     padding: 10px;
+    margin: 5px 0;
     border-radius: 10px;
 }
 
@@ -101,13 +104,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Interface do chat
+# Interface do chat com barra de rolagem
 st.markdown("### 📝 Chat")
 
 with st.container():
     chat_container = st.container()
     with chat_container:
-        chat_text = ""
+        st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
         if len(st.session_state.mensagens_chat) > 0:
             for mensagem in st.session_state.mensagens_chat:
                 user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
@@ -117,6 +120,7 @@ with st.container():
                 st.markdown(f'<div class="bot-response text-large">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
         else:
             st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # Campo de entrada de mensagem logo abaixo do chat
     user_input = st.text_input("💬 Sua pergunta:")
