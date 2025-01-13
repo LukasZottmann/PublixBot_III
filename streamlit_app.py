@@ -14,8 +14,6 @@ def extract_text_from_pdfs(uploaded_files):
                 text += page_text
             document_map[pdf_file.name] = text
             combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
-            st.write(f"🔎 Conteúdo de {pdf_file.name} (primeiros 500 caracteres):")
-            st.write(text[:500])
     return combined_text, document_map
 
 # Configuração da interface
@@ -28,9 +26,9 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []  # Lista de mensagens
 if "document_text" not in st.session_state:
-    st.session_state.document_text = ""  # Texto combinado
+    st.session_state.document_text = ""  # Texto combinado dos documentos
 if "document_map" not in st.session_state:
-    st.session_state.document_map = {}
+    st.session_state.document_map = {}  # Mapa de documentos por nome
 
 # Validação de chave API
 if not api_key:
@@ -79,48 +77,14 @@ if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
 
-# Estilo para rolagem e ajustes de layout
-st.markdown(
-    """
-    <style>
-    .message-container {
-        max-height: 500px;
-        overflow-y: scroll;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        background-color: #FAFAFA;
-    }
-    .user-question {
-        background-color: #E1F5FE;
-        text-align: right;
-        padding: 10px;
-        margin: 5px;
-        border-radius: 10px;
-        font-weight: bold;
-        color: #0277BD;
-    }
-    .bot-response {
-        background-color: #F1F8E9;
-        text-align: left;
-        padding: 10px;
-        margin: 5px;
-        border-radius: 10px;
-        color: #33691E;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Exibição do chat com rolagem e sem espaço em branco
-if len(st.session_state.mensagens_chat) > 0:
-    st.markdown('<div class="message-container">', unsafe_allow_html=True)
-    for mensagem in st.session_state.mensagens_chat:
-        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-        st.markdown(f'<div class="user-question"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="bot-response"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
+# Interface do chat com barra de rolagem usando `st.container` e `st.text_area`
+with st.container():
+    if len(st.session_state.mensagens_chat) > 0:
+        chat_text = ""
+        for mensagem in st.session_state.mensagens_chat:
+            user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+            bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+            chat_text += f"**Você:** {user_msg}\n\n**Bot:** {bot_msg}\n\n---\n"
+        st.text_area("📝 Histórico do Chat", value=chat_text, height=400, max_chars=None, key="chat_history", disabled=True)
+    else:
+        st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
