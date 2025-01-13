@@ -2,23 +2,50 @@ import streamlit as st
 import openai
 import pdfplumber
 import os
+import json
+import io
 import time
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+from google.oauth2.service_account import Credentials
 
-# Função para extrair texto de múltiplos PDFs
-def extract_text_from_pdfs(uploaded_files):
-    combined_text = ""
-    document_map = {}
-    for pdf_file in uploaded_files:
-        with pdfplumber.open(pdf_file) as pdf:
-            text = ""
-            for page in pdf.pages:
-                page_text = page.extract_text() or ""
-                text += page_text
-            document_map[pdf_file.name] = text
-            combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
-    return combined_text, document_map
+# Configurações iniciais
+st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 
-# Função para gerar resposta
+# Carregar credenciais do Secrets do Streamlit Cloud
+GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
+credentials_info = json.loads(GOOGLE_CREDENTIALS)
+
+# Função para autenticar no Google Drive
+def autenticar_drive():
+    creds = Credentials.from_service_account_info(credentials_info)
+    service = build('drive', 'v3', credentials=creds)
+    return service
+
+# Função para listar documentos no Google Drive
+def listar_documentos(service):
+    results = service.files().list(pageSize=10, fields="files(id, name, mimeType)").execute()
+    arquivos = results.get('files', [])
+    if not arquivos:
+        st.warning("Nenhum documento encontrado no Google Drive.")
+    return arquivos
+
+# Função para baixar e extrair texto do PDF
+def baixar_e_extrair_texto(service, file_id):
+    request = service.files().get_media(fileId=file_id)
+    file_io = io.BytesIO()
+    downloader = MediaIoBaseDownload(file_io, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    file_io.seek(0)
+    with pdfplumber.open(file_io) as pdf:
+        texto_completo = ""
+        for page in pdf.pages:
+            texto_completo += page.extract_text() or ""
+    return texto_completo
+
+# Função para gerar resposta com OpenAI
 def gerar_resposta(texto_usuario):
     if not st.session_state.document_map:
         return "Por favor, carregue documentos antes de enviar perguntas."
@@ -45,44 +72,46 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {str(e)}"
 
-# Configuração inicial
-st.set_page_config(page_title="PublixBot", layout="wide")
-st.sidebar.header("Configurações")  # Remove fundo amarelo
-api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
-save_api_key = st.sidebar.checkbox("Salvar API Key localmente")
-
-if save_api_key:
-    st.success("Chave de API salva com sucesso!")
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key  # Salva na variável de ambiente temporariamente
-else:
-    openai.api_key = api_key
-
-uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf)", type="pdf", accept_multiple_files=True)
-
 # Inicialização segura das variáveis de estado
 if "mensagens_chat" not in st.session_state:
-    st.session_state.mensagens_chat = []  # Histórico de mensagens
+    st.session_state.mensagens_chat = []
 if "document_text" not in st.session_state:
-    st.session_state.document_text = ""  # Texto combinado dos documentos
+    st.session_state.document_text = ""
 if "document_map" not in st.session_state:
-    st.session_state.document_map = {}  # Mapa de documentos por nome
+    st.session_state.document_map = {}
 
+# Título e introdução
 st.title("💛 PublixBOT 2.0")
 st.subheader("Sou uma inteligência artificial especialista em administração pública desenvolvida pelo Instituto Publix, me pergunte qualquer coisa!")
 
-if uploaded_files:
-    st.session_state.document_text, st.session_state.document_map = extract_text_from_pdfs(uploaded_files)
-    success_message = st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
-    time.sleep(5)
-    success_message.empty()
+api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
+if api_key:
+    openai.api_key = api_key
 
-    with st.expander("📄 Visualizar documentos carregados"):
-        for nome_documento, conteudo in st.session_state.document_map.items():
-            st.markdown(f"**{nome_documento}** - Prévia das primeiras 500 palavras:")
-            st.text_area(f"Conteúdo de {nome_documento}", conteudo[:500], height=200, disabled=True)
+    # Autenticação no Google Drive
+    drive_service = autenticar_drive()
+    documentos = listar_documentos(drive_service)
+
+    if documentos:
+        st.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
+        # Listar documentos e permitir a seleção
+        opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
+        arquivo_selecionado = st.selectbox("Selecione um documento PDF:", opcoes)
+
+        if arquivo_selecionado:
+            file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo_selecionado][0]
+            if st.button("🔄 Carregar Documento"):
+                try:
+                    texto_documento = baixar_e_extrair_texto(drive_service, file_id)
+                    st.session_state.document_text = texto_documento
+                    st.session_state.document_map = {arquivo_selecionado: texto_documento}
+                    st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
+                except Exception as e:
+                    st.error(f"Erro ao carregar o documento: {e}")
+    else:
+        st.warning("Nenhum documento disponível no Google Drive.")
 else:
-    st.warning("Carregue documentos para começar.")
+    st.warning("Por favor, insira sua chave de API para continuar.")
 
 # Estilo customizado para o chat
 st.markdown("""
@@ -94,13 +123,13 @@ st.markdown("""
 }
 
 .user-message {
-    background-color: #d3d3d3; /* Cinza claro */
+    background-color: #d3d3d3;
     color: #333333;
     text-align: right;
 }
 
 .bot-message {
-    background-color: #fff8dc; /* Amarelo claro */
+    background-color: #fff8dc;
     color: #333333;
     text-align: left;
 }
@@ -115,14 +144,14 @@ for mensagem in st.session_state.mensagens_chat:
     st.markdown(f'<div class="chat-bubble user-message"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="chat-bubble bot-message"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
-# Entrada de mensagem direta
+# Entrada de mensagem
 st.markdown("---")
 user_input = st.text_input("💬 Sua pergunta:")
 
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")  # Campo vazio para nova pergunta
+    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
 
 # Botões abaixo da área de perguntas
 col1, col2 = st.columns(2)
