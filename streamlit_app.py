@@ -69,7 +69,7 @@ if "document_map" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = ""  # Texto temporário do formulário
 
-st.title("💛 PublixBot 2.1 - Mais Inteligente e Interativo!")
+st.title("💛 PublixBot 2.2 - Chat com Barra de Rolagem!")
 st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
@@ -98,11 +98,11 @@ if st.button("📥 Baixar histórico do chat"):
     with open("chat_history.txt", "rb") as f:
         st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
 
-# Estilo customizado da área de chat
+# Estilo customizado da área de chat com rolagem interna
 st.markdown("""
 <style>
 .scroll-container {
-    height: 500px;
+    height: 400px; /* Altura fixa para rolagem */
     overflow-y: auto;
     background-color: #f0f0f5;
     padding: 20px;
@@ -128,17 +128,10 @@ st.markdown("""
     text-align: left;
 }
 
-.upload-container {
-    background-color: #f9fafb;
-    border: 2px dashed #9ca3af;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
 </style>
 """, unsafe_allow_html=True)
 
-# Caixa de chat com barra de rolagem
+# Caixa de chat com barra de rolagem interna
 st.markdown("### 📝 Chat")
 with st.container():
     st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
