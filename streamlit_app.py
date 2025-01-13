@@ -45,18 +45,20 @@ if uploaded_files:
 else:
     st.warning("Carregue documentos para começar.")
 
-# Função de geração de resposta
+# Função de geração de resposta com separação dos documentos
 def gerar_resposta(texto_usuario):
     if not uploaded_files:
         return "Por favor, carregue documentos antes de enviar perguntas."
 
-    contexto = f"""
-    Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix. 
-    Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
+    # Criar contexto com separação clara dos documentos
+    contexto = "Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix.\n"
+    contexto += "Seu objetivo é responder perguntas com base nos seguintes documentos fornecidos:\n\n"
+    
+    for pdf_file, text in zip(uploaded_files, st.session_state.document_text.split("\n\n--- Documento:")):
+        if text.strip():
+            nome_documento = pdf_file.name
+            contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
 
-    Contexto do(s) documento(s):
-    {st.session_state.document_text[:6000]}  # Aumentado o limite de caracteres
-    """
     mensagens = [
         {"role": "system", "content": contexto},
         {"role": "user", "content": texto_usuario}
@@ -67,7 +69,7 @@ def gerar_resposta(texto_usuario):
             model="gpt-4",
             messages=mensagens,
             temperature=0.3,
-            max_tokens=1500  # Aumentado o número de tokens de resposta
+            max_tokens=1500  # Mantido o número de tokens de resposta
         )
         return resposta["choices"][0]["message"]["content"]
 
