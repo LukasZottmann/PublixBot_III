@@ -15,7 +15,7 @@ def extract_text_from_pdfs(uploaded_files):
             document_map[pdf_file.name] = text
             combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
             st.write(f"🔎 Conteúdo de {pdf_file.name} (primeiros 500 caracteres):")
-            st.write(text[:500])  # Diagnóstico: Mostra os primeiros 500 caracteres de cada documento
+            st.write(text[:500])
     return combined_text, document_map
 
 # Configuração da interface
@@ -26,11 +26,11 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 
 # Inicialização das variáveis de estado
 if "mensagens_chat" not in st.session_state:
-    st.session_state.mensagens_chat = []  # Lista de dicionários com mensagens
+    st.session_state.mensagens_chat = []  # Lista de mensagens
 if "document_text" not in st.session_state:
-    st.session_state.document_text = ""  # Texto combinado dos documentos
+    st.session_state.document_text = ""  # Texto combinado
 if "document_map" not in st.session_state:
-    st.session_state.document_map = {}  # Mapeamento dos documentos por nome
+    st.session_state.document_map = {}
 
 # Validação de chave API
 if not api_key:
@@ -49,22 +49,17 @@ if uploaded_files:
 else:
     st.warning("Carregue documentos para começar.")
 
-# Função de geração de resposta com separação dos documentos
+# Função de geração de resposta
 def gerar_resposta(texto_usuario):
     if not uploaded_files:
         return "Por favor, carregue documentos antes de enviar perguntas."
 
-    # Criar contexto com separação clara dos documentos
-    contexto = "Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix.\n"
-    contexto += "Seu objetivo é responder perguntas com base nos seguintes documentos fornecidos:\n\n"
-    
+    contexto = "Você é uma IA especializada em administração pública.\n"
+    contexto += "Baseie suas respostas nos seguintes documentos:\n\n"
     for nome_documento, text in st.session_state.document_map.items():
-        contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
+        contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"
 
-    mensagens = [
-        {"role": "system", "content": contexto},
-        {"role": "user", "content": texto_usuario}
-    ]
+    mensagens = [{"role": "system", "content": contexto}, {"role": "user", "content": texto_usuario}]
 
     try:
         resposta = openai.ChatCompletion.create(
@@ -74,30 +69,34 @@ def gerar_resposta(texto_usuario):
             max_tokens=1500
         )
         return resposta["choices"][0]["message"]["content"]
-
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Entrada do usuário e exibição contínua do chat
+# Entrada do usuário
 user_input = st.text_input("💬 Digite sua mensagem aqui:")
 
 if user_input:
-    # Gera a resposta
     resposta_bot = gerar_resposta(user_input)
-
-    # Adiciona as mensagens como dicionários
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
 
-# Estilo para cores, barra de rolagem e alinhamento das mensagens
+# Estilo para rolagem e ajustes de layout
 st.markdown(
     """
     <style>
+    .message-container {
+        max-height: 500px;
+        overflow-y: scroll;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        background-color: #FAFAFA;
+    }
     .user-question {
         background-color: #E1F5FE;
         text-align: right;
         padding: 10px;
         margin: 5px;
-        border-radius: 15px;
+        border-radius: 10px;
         font-weight: bold;
         color: #0277BD;
     }
@@ -106,43 +105,22 @@ st.markdown(
         text-align: left;
         padding: 10px;
         margin: 5px;
-        border-radius: 15px;
-        color: #33691E;
-    }
-    .message-container {
-        max-height: 500px;
-        overflow-y: auto;
-        padding: 10px;
-        border: 1px solid #ddd;
         border-radius: 10px;
-        background-color: #FAFAFA;
-    }
-    .hidden {
-        display: none;
+        color: #33691E;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Exibe o chat com barra de rolagem, alinhamento e cores
+# Exibição do chat com rolagem e sem espaço em branco
 if len(st.session_state.mensagens_chat) > 0:
     st.markdown('<div class="message-container">', unsafe_allow_html=True)
-
     for mensagem in st.session_state.mensagens_chat:
-        if isinstance(mensagem, dict):
-            user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-            bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-            
-            st.markdown(
-                f'<div class="user-question"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True
-            )
-            st.markdown(
-                f'<div class="bot-response"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True
-            )
-        else:
-            st.error("Mensagem inválida no histórico. Certifique-se de que todas as mensagens estejam no formato correto.")
-    
+        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+        st.markdown(f'<div class="user-question"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="bot-response"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.info("Nenhuma mensagem ainda. Digite sua primeira pergunta para iniciar a conversa.")
+    st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
