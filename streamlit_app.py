@@ -2,6 +2,7 @@ import streamlit as st
 import openai
 import pdfplumber
 import os
+import time
 
 # Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
@@ -46,7 +47,7 @@ def gerar_resposta(texto_usuario):
 
 # Configuração inicial
 st.set_page_config(page_title="PublixBot", layout="wide")
-st.sidebar.header("Configurações")
+st.sidebar.markdown("<div style='background-color: #ffeb99; padding: 10px; border-radius: 10px;'><h3>Configurações</h3></div>", unsafe_allow_html=True)
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
 save_api_key = st.sidebar.checkbox("Salvar API Key localmente")
 
@@ -69,12 +70,15 @@ if "document_map" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = ""  # Texto temporário do formulário
 
-st.title("💛 PublixBot 2.3 - Interface Melhorada!")
-st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
+st.title("💛 PublixBOT 2.0")
+st.subheader("Sou uma inteligência artificial especialista em administração pública desenvolvida pelo Instituto Publix, me pergunte qualquer coisa!")
 
 if uploaded_files:
     st.session_state.document_text, st.session_state.document_map = extract_text_from_pdfs(uploaded_files)
-    st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
+    success_message = st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
+    # Pop-up de sucesso desaparece após 5 segundos
+    time.sleep(5)
+    success_message.empty()
 
     # Exibição de prévia dos documentos carregados
     with st.expander("📄 Visualizar documentos carregados"):
@@ -84,63 +88,33 @@ if uploaded_files:
 else:
     st.warning("Carregue documentos para começar.")
 
-# Botão para limpar histórico
-if st.button("🧹 Limpar histórico de mensagens"):
-    st.session_state.mensagens_chat = []
-    st.success("Histórico de mensagens limpo com sucesso!")
+# Campo de entrada de mensagem com formulário
+with st.form(key="input_form"):
+    st.session_state.pending_input = st.text_input("💬 Sua pergunta:", value=st.session_state.pending_input)
+    submit_button = st.form_submit_button("Enviar")
 
-# Botão para baixar histórico
-if st.button("📥 Baixar histórico do chat"):
-    with open("chat_history.txt", "w") as f:
-        for msg in st.session_state.mensagens_chat:
-            f.write(f"Você: {msg['user']}\n")
-            f.write(f"Bot: {msg['bot']}\n\n")
-    with open("chat_history.txt", "rb") as f:
-        st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
-
-# Estilo customizado para o chat
-st.markdown("""
-<style>
-.chat-container {
-    background-color: #2f2f2f;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.chat-bubble {
-    border-radius: 15px;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-
-.user-message {
-    background-color: #1e90ff;
-    color: white;
-    text-align: right;
-}
-
-.bot-message {
-    background-color: #32cd32;
-    color: white;
-    text-align: left;
-    border-left: 5px solid #228b22;
-}
-
-</style>
-""", unsafe_allow_html=True)
+# Botões abaixo do campo de perguntas
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🧹 Limpar histórico de mensagens"):
+        st.session_state.mensagens_chat = []
+        st.success("Histórico de mensagens limpo com sucesso!")
+with col2:
+    if st.button("📥 Baixar histórico do chat"):
+        with open("chat_history.txt", "w") as f:
+            for msg in st.session_state.mensagens_chat:
+                f.write(f"Você: {msg['user']}\n")
+                f.write(f"Bot: {msg['bot']}\n\n")
+        with open("chat_history.txt", "rb") as f:
+            st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
 
 # Exibição das mensagens do chat
 st.markdown("### 📝 Chat")
 for mensagem in st.session_state.mensagens_chat:
     user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
     bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f'<div class="chat-container"><div class="chat-bubble user-message">Você: {user_msg}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="chat-container"><div class="chat-bubble bot-message">Bot: {bot_msg}</div></div>', unsafe_allow_html=True)
-
-# Campo de entrada de mensagem com formulário
-with st.form(key="input_form"):
-    st.session_state.pending_input = st.text_input("💬 Sua pergunta:", value=st.session_state.pending_input)
-    submit_button = st.form_submit_button("Enviar")
+    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #1e90ff; color: white; border-radius: 10px;"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #32cd32; color: white; border-radius: 10px;"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
 # Processa a entrada do formulário após envio
 if submit_button and st.session_state.pending_input:
