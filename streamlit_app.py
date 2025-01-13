@@ -4,17 +4,17 @@ import pdfplumber
 
 # Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
-    document_texts = {}
+    combined_text = ""
     for pdf_file in uploaded_files:
         with pdfplumber.open(pdf_file) as pdf:
             text = ""
             for page in pdf.pages:
                 page_text = page.extract_text() or ""
                 text += page_text
-            document_texts[pdf_file.name] = text  # Armazena o texto com o nome do documento
+            combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
             st.write(f"🔎 Conteúdo de {pdf_file.name} (primeiros 500 caracteres):")
             st.write(text[:500])  # Diagnóstico: Mostra os primeiros 500 caracteres de cada documento
-    return document_texts
+    return combined_text
 
 # Configuração da interface
 st.set_page_config(page_title="PublixBot", layout="wide")
@@ -25,8 +25,8 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 # Inicialização das variáveis de estado
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []  # Lista de dicionários com mensagens
-if "document_texts" not in st.session_state:
-    st.session_state.document_texts = {}  # Armazena textos dos documentos separadamente
+if "document_text" not in st.session_state:
+    st.session_state.document_text = ""  # Armazena o texto combinado dos documentos
 
 # Validação de chave API
 if not api_key:
@@ -40,7 +40,7 @@ st.title("💛 PublixBot 1.5")
 st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
-    st.session_state.document_texts = extract_text_from_pdfs(uploaded_files)
+    st.session_state.document_text = extract_text_from_pdfs(uploaded_files)
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
 else:
     st.warning("Carregue documentos para começar.")
@@ -54,8 +54,9 @@ def gerar_resposta(texto_usuario):
     contexto = "Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix.\n"
     contexto += "Seu objetivo é responder perguntas com base nos seguintes documentos fornecidos:\n\n"
     
-    for nome_documento, text in st.session_state.document_texts.items():
+    for pdf_file, text in zip(uploaded_files, st.session_state.document_text.split("\n\n--- Documento:")):
         if text.strip():
+            nome_documento = pdf_file.name
             contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
 
     mensagens = [
@@ -126,10 +127,10 @@ for mensagem in st.session_state.mensagens_chat:
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
         
         st.markdown(
-            f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True
+            f'<div class="user-question">Você: {user_msg}</div>', unsafe_allow_html=True
         )
         st.markdown(
-            f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True
+            f'<div class="bot-response">Bot: {bot_msg}</div>', unsafe_allow_html=True
         )
     else:
         st.error("Mensagem inválida no histórico. Certifique-se de que todas as mensagens estejam no formato correto.")
