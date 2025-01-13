@@ -9,6 +9,7 @@ def extract_text_from_pdfs(uploaded_files):
         with pdfplumber.open(pdf_file) as pdf:
             for page in pdf.pages:
                 combined_text += page.extract_text() or ""
+        combined_text += "\n---\n"  # Separador para indicar diferentes documentos
     return combined_text
 
 # Configuração da interface
@@ -34,6 +35,7 @@ st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
     document_text = extract_text_from_pdfs(uploaded_files)
+    st.session_state["document_text"] = document_text  # Armazena o texto combinado
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
 else:
     st.warning("Carregue documentos para começar.")
@@ -48,7 +50,7 @@ def gerar_resposta(texto_usuario):
     Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
 
     Contexto do(s) documento(s):
-    {document_text[:3000]}  # Limite de caracteres para manter o desempenho
+    {st.session_state["document_text"][:3000]}  # Limite de caracteres para manter o desempenho
     """
     mensagens = [
         {"role": "system", "content": contexto},
