@@ -74,55 +74,52 @@ def gerar_resposta(texto_usuario):
 st.markdown("""
 <style>
 .scroll-container {
-    height: 500px;  /* Altura da caixa de chat */
+    height: 500px;
     overflow-y: auto;
-    background-color: #f5f5f5;
-    padding: 15px;
+    background-color: #f0f0f5;
+    padding: 20px;
     border-radius: 10px;
     border: 1px solid #ccc;
 }
 
-.user-question {
-    background-color: #D0E9FF;
-    color: #004085;
+.chat-bubble {
+    border-radius: 15px;
     padding: 10px;
-    margin: 10px 0;
-    border-radius: 10px;
-    font-weight: bold;
+    margin-bottom: 10px;
 }
 
-.bot-response {
-    background-color: #DFF5D8;
-    color: #2E7D32;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 10px;
+.user-message {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    text-align: right;
 }
 
-.input-container {
-    margin-top: 10px;
+.bot-message {
+    background-color: #d1fae5;
+    color: #065f46;
+    text-align: left;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Caixa de chat com barra de rolagem para conter perguntas e respostas
+# Caixa de chat com barra de rolagem
 st.markdown("### 📝 Chat")
 with st.container():
     st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
     
-    # Exibição do histórico de mensagens
+    # Exibição do histórico de mensagens dentro do contêiner rolável
     for mensagem in st.session_state.mensagens_chat:
         user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-        st.markdown(f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-bubble user-message">**Você:** {user_msg}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chat-bubble bot-message">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Campo de entrada de mensagem no final do contêiner
-    with st.form(key="chat_input_form"):
-        user_input = st.text_input("💬 Sua pergunta:", key="user_input")
-        submit_button = st.form_submit_button("Enviar")
-        if submit_button and user_input:
-            resposta_bot = gerar_resposta(user_input)
-            st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+# Campo de entrada de mensagem fora do bloco rolável, mas na mesma área do contêiner
+with st.form(key="input_form"):
+    user_input = st.text_input("💬 Sua pergunta:", key="input_text")
+    submit_button = st.form_submit_button("Enviar")
+    if submit_button and user_input:
+        resposta_bot = gerar_resposta(user_input)
+        st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
