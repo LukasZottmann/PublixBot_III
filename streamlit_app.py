@@ -76,11 +76,9 @@ st.subheader("Sou uma inteligência artificial especialista em administração p
 if uploaded_files:
     st.session_state.document_text, st.session_state.document_map = extract_text_from_pdfs(uploaded_files)
     success_message = st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
-    # Pop-up de sucesso desaparece após 5 segundos
     time.sleep(5)
     success_message.empty()
 
-    # Exibição de prévia dos documentos carregados
     with st.expander("📄 Visualizar documentos carregados"):
         for nome_documento, conteudo in st.session_state.document_map.items():
             st.markdown(f"**{nome_documento}** - Prévia das primeiras 500 palavras:")
@@ -88,7 +86,16 @@ if uploaded_files:
 else:
     st.warning("Carregue documentos para começar.")
 
-# Campo de entrada de mensagem com formulário
+# Exibição das mensagens do chat
+st.markdown("### 📝 Chat")
+for mensagem in st.session_state.mensagens_chat:
+    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #1e90ff; color: white; border-radius: 10px;"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #32cd32; color: white; border-radius: 10px;"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
+
+# Campo de entrada de mensagem e botões logo abaixo do chat
+st.markdown("---")  # Linha divisória
 with st.form(key="input_form"):
     st.session_state.pending_input = st.text_input("💬 Sua pergunta:", value=st.session_state.pending_input)
     submit_button = st.form_submit_button("Enviar")
@@ -107,14 +114,6 @@ with col2:
                 f.write(f"Bot: {msg['bot']}\n\n")
         with open("chat_history.txt", "rb") as f:
             st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
-
-# Exibição das mensagens do chat
-st.markdown("### 📝 Chat")
-for mensagem in st.session_state.mensagens_chat:
-    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #1e90ff; color: white; border-radius: 10px;"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #32cd32; color: white; border-radius: 10px;"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
 # Processa a entrada do formulário após envio
 if submit_button and st.session_state.pending_input:
