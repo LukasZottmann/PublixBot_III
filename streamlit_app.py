@@ -47,7 +47,7 @@ def gerar_resposta(texto_usuario):
 
 # Configuração inicial
 st.set_page_config(page_title="PublixBot", layout="wide")
-st.sidebar.markdown("<div style='background-color: #ffeb99; padding: 10px; border-radius: 10px;'><h3>Configurações</h3></div>", unsafe_allow_html=True)
+st.sidebar.header("Configurações")  # Remove fundo amarelo
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
 save_api_key = st.sidebar.checkbox("Salvar API Key localmente")
 
@@ -84,13 +84,36 @@ if uploaded_files:
 else:
     st.warning("Carregue documentos para começar.")
 
+# Estilo customizado para o chat
+st.markdown("""
+<style>
+.chat-bubble {
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.user-message {
+    background-color: #d3d3d3; /* Cinza claro */
+    color: #333333;
+    text-align: right;
+}
+
+.bot-message {
+    background-color: #fff8dc; /* Amarelo claro */
+    color: #333333;
+    text-align: left;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Exibição das mensagens do chat
 st.markdown("### 📝 Chat")
 for mensagem in st.session_state.mensagens_chat:
     user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
     bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #1e90ff; color: white; border-radius: 10px;"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="margin-bottom: 10px; padding: 10px; background-color: #32cd32; color: white; border-radius: 10px;"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-bubble user-message"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-bubble bot-message"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
 # Entrada de mensagem direta
 st.markdown("---")
@@ -99,7 +122,6 @@ user_input = st.text_input("💬 Sua pergunta:")
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    # Em vez de limpar diretamente o `session_state`, renderizamos sem redefinição direta
     st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")  # Campo vazio para nova pergunta
 
 # Botões abaixo da área de perguntas
