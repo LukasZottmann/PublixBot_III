@@ -69,7 +69,7 @@ if "document_map" not in st.session_state:
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = ""  # Texto temporário do formulário
 
-st.title("💛 PublixBot 2.2 - Chat com Barra de Rolagem!")
+st.title("💛 PublixBot 2.3 - Interface Melhorada!")
 st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
@@ -98,16 +98,13 @@ if st.button("📥 Baixar histórico do chat"):
     with open("chat_history.txt", "rb") as f:
         st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
 
-# Estilo customizado da área de chat com rolagem interna
+# Estilo customizado para o chat
 st.markdown("""
 <style>
-.scroll-container {
-    height: 400px; /* Altura fixa para rolagem */
-    overflow-y: auto;
-    background-color: #f0f0f5;
+.chat-container {
+    background-color: #2f2f2f;
     padding: 20px;
     border-radius: 10px;
-    border: 1px solid #ccc;
 }
 
 .chat-bubble {
@@ -117,32 +114,28 @@ st.markdown("""
 }
 
 .user-message {
-    background-color: #dbeafe;
-    color: #1d4ed8;
+    background-color: #1e90ff;
+    color: white;
     text-align: right;
 }
 
 .bot-message {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: #32cd32;
+    color: white;
     text-align: left;
+    border-left: 5px solid #228b22;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# Caixa de chat com barra de rolagem interna
+# Exibição das mensagens do chat
 st.markdown("### 📝 Chat")
-with st.container():
-    st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
-    
-    for mensagem in st.session_state.mensagens_chat:
-        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-        st.markdown(f'<div class="chat-bubble user-message">**Você:** {user_msg}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="chat-bubble bot-message">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+for mensagem in st.session_state.mensagens_chat:
+    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+    st.markdown(f'<div class="chat-container"><div class="chat-bubble user-message">Você: {user_msg}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-container"><div class="chat-bubble bot-message">Bot: {bot_msg}</div></div>', unsafe_allow_html=True)
 
 # Campo de entrada de mensagem com formulário
 with st.form(key="input_form"):
@@ -153,4 +146,4 @@ with st.form(key="input_form"):
 if submit_button and st.session_state.pending_input:
     resposta_bot = gerar_resposta(st.session_state.pending_input)
     st.session_state.mensagens_chat.append({"user": st.session_state.pending_input, "bot": resposta_bot})
-    st.session_state.pending_input = ""  # Limpa o campo de entrada fora do formulário
+    st.session_state.pending_input = ""  # Limpa o campo de entrada após envio
