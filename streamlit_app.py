@@ -156,4 +156,4 @@ with st.form(key="input_form"):
     if submit_button and user_input:
         resposta_bot = gerar_resposta(user_input)
         st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-        st.experimental_rerun()  # Atualiza para exibir imediatamente
+        st.session_state["input_text"] = ""  # Limpa o campo de entrada após envio
