@@ -54,10 +54,14 @@ def gerar_resposta(texto_usuario):
     contexto = "Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix.\n"
     contexto += "Seu objetivo é responder perguntas com base nos seguintes documentos fornecidos:\n\n"
     
-    for pdf_file, text in zip(uploaded_files, st.session_state.document_text.split("\n\n--- Documento:")):
-        if text.strip():
-            nome_documento = pdf_file.name
-            contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
+    # Divisão e verificação dos textos dos documentos
+    documentos_separados = st.session_state.document_text.split("\n\n--- Documento:")
+    for i, pdf_file in enumerate(uploaded_files):
+        if i < len(documentos_separados):
+            text = documentos_separados[i].strip()
+            if text:
+                nome_documento = pdf_file.name
+                contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
 
     mensagens = [
         {"role": "system", "content": contexto},
