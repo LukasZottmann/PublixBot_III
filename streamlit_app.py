@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 import pdfplumber
 
-# Função para extrair texto de múltiplos PDFs com logs de conferência
+# Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
     combined_text = ""
     file_names = []  # Lista para exibir os nomes dos documentos carregados
@@ -14,7 +14,7 @@ def extract_text_from_pdfs(uploaded_files):
                 text += page_text
             combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
             file_names.append(pdf_file.name)
-    st.write(f"📄 Documentos carregados: {', '.join(file_names)}")
+    st.write(f"📄 Documentos carregados e processados: {', '.join(file_names)}")
     return combined_text
 
 # Configuração da interface
@@ -43,6 +43,8 @@ st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 if uploaded_files:
     st.session_state.document_text = extract_text_from_pdfs(uploaded_files)
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
+    st.write("🔍 **Conteúdo combinado dos documentos (primeiros 1000 caracteres):**")
+    st.write(st.session_state.document_text[:1000])  # Mostra um preview do texto combinado
 else:
     st.warning("Carregue documentos para começar.")
 
