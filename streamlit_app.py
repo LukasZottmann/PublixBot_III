@@ -5,7 +5,6 @@ import pdfplumber
 # Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
     combined_text = ""
-    file_names = []  # Lista para exibir os nomes dos documentos carregados
     for pdf_file in uploaded_files:
         with pdfplumber.open(pdf_file) as pdf:
             text = ""
@@ -13,8 +12,8 @@ def extract_text_from_pdfs(uploaded_files):
                 page_text = page.extract_text() or ""
                 text += page_text
             combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
-            file_names.append(pdf_file.name)
-    st.write(f"📄 Documentos carregados e processados: {', '.join(file_names)}")
+            st.write(f"🔎 Conteúdo de {pdf_file.name} (primeiros 500 caracteres):")
+            st.write(text[:500])  # Diagnóstico: Mostra os primeiros 500 caracteres de cada documento
     return combined_text
 
 # Configuração da interface
@@ -43,8 +42,6 @@ st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 if uploaded_files:
     st.session_state.document_text = extract_text_from_pdfs(uploaded_files)
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
-    st.write("🔍 **Conteúdo combinado dos documentos (primeiros 1000 caracteres):**")
-    st.write(st.session_state.document_text[:1000])  # Mostra um preview do texto combinado
 else:
     st.warning("Carregue documentos para começar.")
 
@@ -58,7 +55,7 @@ def gerar_resposta(texto_usuario):
     Seu objetivo é responder perguntas de forma clara, assertiva e detalhada com base nos documentos fornecidos.
 
     Contexto do(s) documento(s):
-    {st.session_state.document_text[:3000]}  # Limite de caracteres para manter o desempenho
+    {st.session_state.document_text[:6000]}  # Aumentado o limite de caracteres
     """
     mensagens = [
         {"role": "system", "content": contexto},
@@ -70,7 +67,7 @@ def gerar_resposta(texto_usuario):
             model="gpt-4",
             messages=mensagens,
             temperature=0.3,
-            max_tokens=1000
+            max_tokens=1500  # Aumentado o número de tokens de resposta
         )
         return resposta["choices"][0]["message"]["content"]
 
@@ -123,7 +120,6 @@ st.markdown("### 📝 Chat")
 st.markdown('<div class="message-container">', unsafe_allow_html=True)
 
 for mensagem in st.session_state.mensagens_chat:
-    # Verifica se a mensagem é um dicionário antes de tentar acessar
     if isinstance(mensagem, dict):
         user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
         bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
