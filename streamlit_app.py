@@ -110,8 +110,8 @@ st.markdown(
         color: #33691E;
     }
     .message-container {
-        max-height: 500px;  /* Altura máxima para ativar a barra de rolagem */
-        overflow-y: auto;
+        max-height: 500px;  /* Define altura máxima */
+        overflow-y: auto;  /* Adiciona barra de rolagem */
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 10px;
