@@ -70,7 +70,7 @@ def gerar_resposta(texto_usuario):
     except Exception as e:
         return f"Erro ao gerar a resposta: {e}"
 
-# Estilo customizado para manter a barra de rolagem e destacar as mensagens
+# Estilo customizado
 st.markdown("""
 <style>
 .scroll-container {
@@ -101,25 +101,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Interface do chat com barra de rolagem
+# Caixa de chat com barra de rolagem para conter perguntas e respostas
 st.markdown("### 📝 Chat")
 st.markdown('<div class="scroll-container">', unsafe_allow_html=True)
 
-if len(st.session_state.mensagens_chat) > 0:
-    for mensagem in st.session_state.mensagens_chat:
-        user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-        bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-        
-        st.markdown(f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
-else:
-    st.info("Nenhuma mensagem ainda. Digite uma pergunta para começar.")
+# Conteúdo dentro do chat (perguntas e respostas)
+for mensagem in st.session_state.mensagens_chat:
+    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+    
+    st.markdown(f'<div class="user-question">**Você:** {user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bot-response">**Bot:** {bot_msg}</div>', unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Campo de entrada de mensagem logo abaixo do chat
-user_input = st.text_input("💬 Sua pergunta:")
+# Campo de entrada de mensagem dentro do contêiner geral
+with st.container():
+    user_input = st.text_input("💬 Sua pergunta:")
 
-if user_input:
-    resposta_bot = gerar_resposta(user_input)
-    st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+    if user_input:
+        resposta_bot = gerar_resposta(user_input)
+        st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
