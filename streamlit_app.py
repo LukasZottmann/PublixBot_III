@@ -67,8 +67,6 @@ if "document_text" not in st.session_state:
     st.session_state.document_text = ""  # Texto combinado dos documentos
 if "document_map" not in st.session_state:
     st.session_state.document_map = {}  # Mapa de documentos por nome
-if "user_input" not in st.session_state:
-    st.session_state.user_input = ""  # Texto do campo de entrada do usuário
 
 st.title("💛 PublixBOT 2.0")
 st.subheader("Sou uma inteligência artificial especialista em administração pública desenvolvida pelo Instituto Publix, me pergunte qualquer coisa!")
@@ -96,13 +94,13 @@ for mensagem in st.session_state.mensagens_chat:
 
 # Entrada de mensagem direta
 st.markdown("---")
-user_input = st.text_input("💬 Sua pergunta:", key="user_input")
+user_input = st.text_input("💬 Sua pergunta:")
 
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    st.session_state.user_input = ""  # Limpa o campo de entrada após envio
-    st.experimental_rerun()  # Força a interface a ser atualizada imediatamente após enviar
+    # Em vez de limpar diretamente o `session_state`, renderizamos sem redefinição direta
+    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")  # Campo vazio para nova pergunta
 
 # Botões abaixo da área de perguntas
 col1, col2 = st.columns(2)
