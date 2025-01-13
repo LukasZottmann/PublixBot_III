@@ -4,17 +4,17 @@ import pdfplumber
 
 # Função para extrair texto de múltiplos PDFs
 def extract_text_from_pdfs(uploaded_files):
-    combined_text = ""
+    document_texts = {}
     for pdf_file in uploaded_files:
         with pdfplumber.open(pdf_file) as pdf:
             text = ""
             for page in pdf.pages:
                 page_text = page.extract_text() or ""
                 text += page_text
-            combined_text += f"\n\n--- Documento: {pdf_file.name} ---\n{text}\n"
+            document_texts[pdf_file.name] = text  # Armazena o texto com o nome do documento
             st.write(f"🔎 Conteúdo de {pdf_file.name} (primeiros 500 caracteres):")
             st.write(text[:500])  # Diagnóstico: Mostra os primeiros 500 caracteres de cada documento
-    return combined_text
+    return document_texts
 
 # Configuração da interface
 st.set_page_config(page_title="PublixBot", layout="wide")
@@ -25,8 +25,8 @@ uploaded_files = st.sidebar.file_uploader("📄 Faça upload de documentos (.pdf
 # Inicialização das variáveis de estado
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []  # Lista de dicionários com mensagens
-if "document_text" not in st.session_state:
-    st.session_state.document_text = ""  # Armazena o texto combinado dos documentos
+if "document_texts" not in st.session_state:
+    st.session_state.document_texts = {}  # Armazena textos dos documentos separadamente
 
 # Validação de chave API
 if not api_key:
@@ -40,7 +40,7 @@ st.title("💛 PublixBot 1.5")
 st.subheader("Pergunte qualquer coisa com base nos documentos carregados!")
 
 if uploaded_files:
-    st.session_state.document_text = extract_text_from_pdfs(uploaded_files)
+    st.session_state.document_texts = extract_text_from_pdfs(uploaded_files)
     st.success(f"📥 {len(uploaded_files)} documentos carregados com sucesso!")
 else:
     st.warning("Carregue documentos para começar.")
@@ -54,14 +54,9 @@ def gerar_resposta(texto_usuario):
     contexto = "Você é uma IA especializada em administração pública, desenvolvida pelo Instituto Publix.\n"
     contexto += "Seu objetivo é responder perguntas com base nos seguintes documentos fornecidos:\n\n"
     
-    # Divisão e verificação dos textos dos documentos
-    documentos_separados = st.session_state.document_text.split("\n\n--- Documento:")
-    for i, pdf_file in enumerate(uploaded_files):
-        if i < len(documentos_separados):
-            text = documentos_separados[i].strip()
-            if text:
-                nome_documento = pdf_file.name
-                contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
+    for nome_documento, text in st.session_state.document_texts.items():
+        if text.strip():
+            contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"  # Limita cada documento a 1500 caracteres
 
     mensagens = [
         {"role": "system", "content": contexto},
