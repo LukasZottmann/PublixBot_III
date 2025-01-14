@@ -14,7 +14,12 @@ st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 
 # Carregar credenciais do Secrets do Streamlit Cloud
 GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
-credentials_info = json.loads(GOOGLE_CREDENTIALS)
+
+# Verificação de tipo
+if isinstance(GOOGLE_CREDENTIALS, str):
+    credentials_info = json.loads(GOOGLE_CREDENTIALS)
+else:
+    credentials_info = GOOGLE_CREDENTIALS
 
 # Função para autenticar no Google Drive
 def autenticar_drive():
@@ -112,58 +117,3 @@ if api_key:
         st.warning("Nenhum documento disponível no Google Drive.")
 else:
     st.warning("Por favor, insira sua chave de API para continuar.")
-
-# Estilo customizado para o chat
-st.markdown("""
-<style>
-.chat-bubble {
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-
-.user-message {
-    background-color: #d3d3d3;
-    color: #333333;
-    text-align: right;
-}
-
-.bot-message {
-    background-color: #fff8dc;
-    color: #333333;
-    text-align: left;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# Exibição das mensagens do chat
-st.markdown("### 📝 Chat")
-for mensagem in st.session_state.mensagens_chat:
-    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
-    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f'<div class="chat-bubble user-message"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="chat-bubble bot-message"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
-
-# Entrada de mensagem
-st.markdown("---")
-user_input = st.text_input("💬 Sua pergunta:")
-
-if user_input:
-    resposta_bot = gerar_resposta(user_input)
-    st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
-
-# Botões abaixo da área de perguntas
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🧹 Limpar histórico de mensagens"):
-        st.session_state.mensagens_chat = []
-        st.success("Histórico de mensagens limpo com sucesso!")
-with col2:
-    if st.button("📥 Baixar histórico do chat"):
-        with open("chat_history.txt", "w") as f:
-            for msg in st.session_state.mensagens_chat:
-                f.write(f"Você: {msg['user']}\n")
-                f.write(f"Bot: {msg['bot']}\n\n")
-        with open("chat_history.txt", "rb") as f:
-            st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
