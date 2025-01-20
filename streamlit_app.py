@@ -41,7 +41,7 @@ def autenticar_drive(credentials_info):
 # Função para listar documentos no Google Drive
 def listar_documentos(service):
     try:
-        results = service.files().list(pageSize=10, fields="files(id, name, mimeType)").execute()
+        results = service.files().list(pageSize=50, fields="files(id, name, mimeType)").execute()
         arquivos = results.get('files', [])
         if not arquivos:
             st.warning("Nenhum documento encontrado no Google Drive.")
@@ -128,18 +128,21 @@ if api_key:
 
             if documentos:
                 st.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
-                # Listar documentos e permitir a seleção
+                # Listar documentos e permitir a seleção múltipla
                 opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
-                arquivo_selecionado = st.selectbox("Selecione um documento PDF:", opcoes)
+                arquivos_selecionados = st.multiselect("Selecione um ou mais documentos PDF:", opcoes)
 
-                if arquivo_selecionado:
-                    file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo_selecionado][0]
-                    if st.button("🔄 Carregar Documento"):
-                        texto_documento = baixar_e_extrair_texto(drive_service, file_id)
-                        if texto_documento:
-                            st.session_state.document_text = texto_documento
-                            st.session_state.document_map = {arquivo_selecionado: texto_documento}
-                            st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
+                if arquivos_selecionados:
+                    if st.button("🔄 Carregar Documentos"):
+                        for arquivo in arquivos_selecionados:
+                            file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo][0]
+                            texto_documento = baixar_e_extrair_texto(drive_service, file_id)
+                            if texto_documento:
+                                st.session_state.document_map[arquivo] = texto_documento
+                        st.success("Documentos carregados com sucesso!")
+                        with st.expander("📜 Visualizar documentos carregados"):
+                            for nome_documento, texto in st.session_state.document_map.items():
+                                st.text_area(f"Conteúdo de {nome_documento}", texto[:500], height=200)
         else:
             st.error("Erro ao autenticar no Google Drive.")
 else:
