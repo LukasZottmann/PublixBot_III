@@ -12,6 +12,9 @@ from google.oauth2.service_account import Credentials
 # Configurações iniciais
 st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 
+# Inicializando a variável credentials_info para evitar erros
+credentials_info = None
+
 # Carregar credenciais do arquivo JSON enviado
 def carregar_credenciais(uploaded_file):
     try:
@@ -24,8 +27,6 @@ def carregar_credenciais(uploaded_file):
 uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de credenciais (.json)", type="json")
 if uploaded_file:
     credentials_info = carregar_credenciais(uploaded_file)
-else:
-    st.warning("Por favor, faça o upload do arquivo de credenciais para continuar.")
 
 # Função para autenticar no Google Drive
 def autenticar_drive(credentials_info):
@@ -119,7 +120,7 @@ api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placehol
 if api_key:
     openai.api_key = api_key
 
-    # Autenticar no Google Drive
+    # Autenticar no Google Drive apenas se as credenciais foram carregadas
     if credentials_info:
         drive_service = autenticar_drive(credentials_info)
         if drive_service:
@@ -139,6 +140,8 @@ if api_key:
                             st.session_state.document_text = texto_documento
                             st.session_state.document_map = {arquivo_selecionado: texto_documento}
                             st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
+        else:
+            st.error("Erro ao autenticar no Google Drive.")
 else:
     st.warning("Por favor, insira sua chave de API e carregue o arquivo de credenciais para continuar.")
 
