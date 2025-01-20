@@ -13,7 +13,10 @@ st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 # Função para autenticar no Google Drive
 def autenticar_drive(credentials_file):
     try:
-        credentials = Credentials.from_service_account_file(credentials_file)
+        # Ler o conteúdo do arquivo de credenciais como string
+        credentials_data = json.load(credentials_file)
+        # Criar as credenciais a partir do conteúdo do JSON
+        credentials = Credentials.from_service_account_info(credentials_data)
         service = build('drive', 'v3', credentials=credentials)
         return service
     except Exception as e:
@@ -138,4 +141,3 @@ if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
     st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
-
