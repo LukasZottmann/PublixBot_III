@@ -1,8 +1,10 @@
 import streamlit as st
 import openai
 import pdfplumber
-import io
+import os
 import json
+import io
+import time
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2.service_account import Credentials
@@ -10,14 +12,26 @@ from google.oauth2.service_account import Credentials
 # Configurações iniciais
 st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 
-# Função para autenticar no Google Drive
-def autenticar_drive(credentials_file):
+# Carregar credenciais do arquivo JSON enviado
+def carregar_credenciais(uploaded_file):
     try:
-        # Ler o conteúdo do arquivo de credenciais como string
-        credentials_data = json.load(credentials_file)
-        # Criar as credenciais a partir do conteúdo do JSON
-        credentials = Credentials.from_service_account_info(credentials_data)
-        service = build('drive', 'v3', credentials=credentials)
+        return json.load(uploaded_file)
+    except Exception as e:
+        st.error(f"Erro ao carregar credenciais: {e}")
+        return None
+
+# Upload do arquivo de credenciais
+uploaded_file = st.sidebar.file_uploader("Faça upload do arquivo de credenciais (.json)", type="json")
+if uploaded_file:
+    credentials_info = carregar_credenciais(uploaded_file)
+else:
+    st.warning("Por favor, faça o upload do arquivo de credenciais para continuar.")
+
+# Função para autenticar no Google Drive
+def autenticar_drive(credentials_info):
+    try:
+        creds = Credentials.from_service_account_info(credentials_info)
+        service = build('drive', 'v3', credentials=creds)
         return service
     except Exception as e:
         st.error(f"Erro na autenticação do Google Drive: {e}")
@@ -59,11 +73,18 @@ def gerar_resposta(texto_usuario):
     if not st.session_state.document_map:
         return "Por favor, carregue documentos antes de enviar perguntas."
 
-    contexto = "Você é uma IA especializada em administração pública. Baseie suas respostas nos seguintes documentos:\n\n"
+    # Construindo o contexto a partir dos documentos carregados
+    contexto = "Você é uma IA especializada em administração pública. Use as informações a seguir para responder com base nos documentos:\n\n"
     for nome_documento, text in st.session_state.document_map.items():
-        contexto += f"--- Documento: {nome_documento} ---\n{text[:1500]}...\n\n"
+        # Truncar o texto para evitar excesso de tokens
+        texto_resumido = text[:2000]  # Limite ajustado para tokens
+        contexto += f"--- Documento: {nome_documento} ---\n{texto_resumido}\n\n"
 
-    mensagens = [{"role": "system", "content": contexto}, {"role": "user", "content": texto_usuario}]
+    # Mensagens enviadas ao modelo
+    mensagens = [
+        {"role": "system", "content": contexto},
+        {"role": "user", "content": texto_usuario}
+    ]
 
     try:
         with st.spinner('💡 Processando sua pergunta, um momento...'):
@@ -71,7 +92,7 @@ def gerar_resposta(texto_usuario):
                 model="gpt-4",
                 messages=mensagens,
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=500  # Limitar a resposta para garantir clareza
             )
             return resposta["choices"][0]["message"]["content"]
     except openai.error.AuthenticationError:
@@ -89,19 +110,18 @@ if "document_text" not in st.session_state:
 if "document_map" not in st.session_state:
     st.session_state.document_map = {}
 
-# Interface do Streamlit
+# Título e introdução
 st.title("💛 PublixBOT 2.0")
 st.subheader("Sou uma inteligência artificial especialista em administração pública desenvolvida pelo Instituto Publix, me pergunte qualquer coisa!")
 
+# Configurar chave da API OpenAI
 api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placeholder="Insira sua API Key")
 if api_key:
     openai.api_key = api_key
 
-    # Upload do arquivo de credenciais
-    credentials_file = st.sidebar.file_uploader("📄 Faça upload do arquivo de credenciais (.json)", type="json")
-
-    if credentials_file:
-        drive_service = autenticar_drive(credentials_file)
+    # Autenticar no Google Drive
+    if credentials_info:
+        drive_service = autenticar_drive(credentials_info)
         if drive_service:
             documentos = listar_documentos(drive_service)
 
@@ -119,19 +139,37 @@ if api_key:
                             st.session_state.document_text = texto_documento
                             st.session_state.document_map = {arquivo_selecionado: texto_documento}
                             st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
-            else:
-                st.warning("Nenhum documento disponível no Google Drive.")
-    else:
-        st.warning("Por favor, faça o upload do arquivo de credenciais para continuar.")
 else:
-    st.warning("Por favor, insira sua chave de API para continuar.")
+    st.warning("Por favor, insira sua chave de API e carregue o arquivo de credenciais para continuar.")
+
+# Estilo customizado para o chat
+st.markdown("""
+<style>
+.chat-bubble {
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.user-message {
+    background-color: #d3d3d3;
+    color: #333333;
+    text-align: right;
+}
+.bot-message {
+    background-color: #fff8dc;
+    color: #333333;
+    text-align: left;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Exibição das mensagens do chat
 st.markdown("### 📝 Chat")
 for mensagem in st.session_state.mensagens_chat:
     user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
     bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f"**Você**: {user_msg}\n\n**Bot**: {bot_msg}")
+    st.markdown(f'<div class="chat-bubble user-message"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="chat-bubble bot-message"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
 
 # Entrada de mensagem
 st.markdown("---")
@@ -141,3 +179,18 @@ if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
     st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
+
+# Botões abaixo da área de perguntas
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🧹 Limpar histórico de mensagens"):
+        st.session_state.mensagens_chat = []
+        st.success("Histórico de mensagens limpo com sucesso!")
+with col2:
+    if st.button("📥 Baixar histórico do chat"):
+        with open("chat_history.txt", "w") as f:
+            for msg in st.session_state.mensagens_chat:
+                f.write(f"Você: {msg['user']}\n")
+                f.write(f"Bot: {msg['bot']}\n\n")
+        with open("chat_history.txt", "rb") as f:
+            st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
