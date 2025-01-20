@@ -127,19 +127,19 @@ if api_key:
             documentos = listar_documentos(drive_service)
 
             if documentos:
-                st.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
-                # Listar documentos e permitir a seleção múltipla
+                st.sidebar.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
+                # Listar documentos e permitir a seleção múltipla na sidebar
                 opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
-                arquivos_selecionados = st.multiselect("Selecione um ou mais documentos PDF:", opcoes)
+                arquivos_selecionados = st.sidebar.multiselect("Selecione um ou mais documentos PDF:", opcoes)
 
                 if arquivos_selecionados:
-                    if st.button("🔄 Carregar Documentos"):
+                    if st.sidebar.button("🔄 Carregar Documentos"):
                         for arquivo in arquivos_selecionados:
                             file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo][0]
                             texto_documento = baixar_e_extrair_texto(drive_service, file_id)
                             if texto_documento:
                                 st.session_state.document_map[arquivo] = texto_documento
-                        st.success("Documentos carregados com sucesso!")
+                        st.sidebar.success("Documentos carregados com sucesso!")
                         with st.expander("📜 Visualizar documentos carregados"):
                             for nome_documento, texto in st.session_state.document_map.items():
                                 st.text_area(f"Conteúdo de {nome_documento}", texto[:500], height=200)
