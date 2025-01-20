@@ -1,10 +1,8 @@
 import streamlit as st
 import openai
 import pdfplumber
-import os
-import json
 import io
-import time
+import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2.service_account import Credentials
@@ -12,20 +10,11 @@ from google.oauth2.service_account import Credentials
 # Configurações iniciais
 st.set_page_config(page_title="PublixBOT 2.0", layout="wide")
 
-# Carregar credenciais do Secrets do Streamlit Cloud
-GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
-
-# Garantir que as credenciais estejam no formato correto (dicionário)
-if isinstance(GOOGLE_CREDENTIALS, str):
-    credentials_info = json.loads(GOOGLE_CREDENTIALS)
-else:
-    credentials_info = GOOGLE_CREDENTIALS
-
 # Função para autenticar no Google Drive
-def autenticar_drive():
+def autenticar_drive(credentials_file):
     try:
-        creds = Credentials.from_service_account_info(credentials_info)
-        service = build('drive', 'v3', credentials=creds)
+        credentials = Credentials.from_service_account_file(credentials_file)
+        service = build('drive', 'v3', credentials=credentials)
         return service
     except Exception as e:
         st.error(f"Erro na autenticação do Google Drive: {e}")
@@ -97,7 +86,7 @@ if "document_text" not in st.session_state:
 if "document_map" not in st.session_state:
     st.session_state.document_map = {}
 
-# Título e introdução
+# Interface do Streamlit
 st.title("💛 PublixBOT 2.0")
 st.subheader("Sou uma inteligência artificial especialista em administração pública desenvolvida pelo Instituto Publix, me pergunte qualquer coisa!")
 
@@ -105,24 +94,48 @@ api_key = st.sidebar.text_input("🔑 OpenAI API Key", type="password", placehol
 if api_key:
     openai.api_key = api_key
 
-    # Autenticação no Google Drive
-    drive_service = autenticar_drive()
-    if drive_service:
-        documentos = listar_documentos(drive_service)
+    # Upload do arquivo de credenciais
+    credentials_file = st.sidebar.file_uploader("📄 Faça upload do arquivo de credenciais (.json)", type="json")
 
-        if documentos:
-            st.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
-            # Listar documentos e permitir a seleção
-            opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
-            arquivo_selecionado = st.selectbox("Selecione um documento PDF:", opcoes)
+    if credentials_file:
+        drive_service = autenticar_drive(credentials_file)
+        if drive_service:
+            documentos = listar_documentos(drive_service)
 
-            if arquivo_selecionado:
-                file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo_selecionado][0]
-                if st.button("🔄 Carregar Documento"):
-                    texto_documento = baixar_e_extrair_texto(drive_service, file_id)
-                    if texto_documento:
-                        st.session_state.document_text = texto_documento
-                        st.session_state.document_map = {arquivo_selecionado: texto_documento}
-                        st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
+            if documentos:
+                st.success("📄 Documentos disponíveis no Google Drive carregados com sucesso!")
+                # Listar documentos e permitir a seleção
+                opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
+                arquivo_selecionado = st.selectbox("Selecione um documento PDF:", opcoes)
+
+                if arquivo_selecionado:
+                    file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo_selecionado][0]
+                    if st.button("🔄 Carregar Documento"):
+                        texto_documento = baixar_e_extrair_texto(drive_service, file_id)
+                        if texto_documento:
+                            st.session_state.document_text = texto_documento
+                            st.session_state.document_map = {arquivo_selecionado: texto_documento}
+                            st.text_area("📜 Texto do Documento Carregado", texto_documento[:1000], height=200)
+            else:
+                st.warning("Nenhum documento disponível no Google Drive.")
+    else:
+        st.warning("Por favor, faça o upload do arquivo de credenciais para continuar.")
 else:
     st.warning("Por favor, insira sua chave de API para continuar.")
+
+# Exibição das mensagens do chat
+st.markdown("### 📝 Chat")
+for mensagem in st.session_state.mensagens_chat:
+    user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
+    bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
+    st.markdown(f"**Você**: {user_msg}\n\n**Bot**: {bot_msg}")
+
+# Entrada de mensagem
+st.markdown("---")
+user_input = st.text_input("💬 Sua pergunta:")
+
+if user_input:
+    resposta_bot = gerar_resposta(user_input)
+    st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
+    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
+
