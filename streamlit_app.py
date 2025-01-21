@@ -130,17 +130,16 @@ if api_key:
                 opcoes = [f"{doc['name']}" for doc in documentos if doc['mimeType'] == 'application/pdf']
                 arquivos_selecionados = st.sidebar.multiselect("Selecione um ou mais documentos PDF:", opcoes)
 
-                if arquivos_selecionados:
-                    if st.sidebar.button("🔄 Carregar Documentos"):
-                        for arquivo in arquivos_selecionados:
-                            file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo][0]
-                            texto_documento = baixar_e_extrair_texto(drive_service, file_id)
-                            if texto_documento:
-                                st.session_state.document_map[arquivo] = texto_documento
-                        st.sidebar.success("Documentos carregados com sucesso!")
-                        with st.sidebar.expander("📜 Visualizar documentos carregados"):
-                            for nome_documento, texto in st.session_state.document_map.items():
-                                st.text_area(f"Conteúdo de {nome_documento}", texto[:500], height=200)
+                if st.sidebar.button("🔄 Carregar Documentos") and arquivos_selecionados:
+                    for arquivo in arquivos_selecionados:
+                        file_id = [doc['id'] for doc in documentos if doc['name'] == arquivo][0]
+                        texto_documento = baixar_e_extrair_texto(drive_service, file_id)
+                        if texto_documento:
+                            st.session_state.document_map[arquivo] = texto_documento
+                    st.sidebar.success("Documentos carregados com sucesso!")
+                    with st.sidebar.expander("📜 Visualizar documentos carregados"):
+                        for nome_documento, texto in st.session_state.document_map.items():
+                            st.text_area(f"Conteúdo de {nome_documento}", texto[:500], height=200)
         else:
             st.error("Erro ao autenticar no Google Drive.")
 else:
@@ -159,9 +158,8 @@ user_input = st.text_input("💬 Sua pergunta:", key="user_input")
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    st.experimental_rerun()
+    st.session_state.user_input = ""  # Limpa o campo de entrada para a próxima pergunta
 
 # Botões para gerenciamento de chat
 if st.sidebar.button("🧹 Limpar histórico de mensagens"):
     st.session_state.mensagens_chat = []
-    st.experimental_rerun()
