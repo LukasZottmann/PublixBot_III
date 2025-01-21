@@ -106,8 +106,6 @@ def gerar_resposta(texto_usuario):
 # Inicialização segura das variáveis de estado
 if "mensagens_chat" not in st.session_state:
     st.session_state.mensagens_chat = []
-if "document_text" not in st.session_state:
-    st.session_state.document_text = ""
 if "document_map" not in st.session_state:
     st.session_state.document_map = {}
 
@@ -140,7 +138,7 @@ if api_key:
                             if texto_documento:
                                 st.session_state.document_map[arquivo] = texto_documento
                         st.sidebar.success("Documentos carregados com sucesso!")
-                        with st.expander("📜 Visualizar documentos carregados"):
+                        with st.sidebar.expander("📜 Visualizar documentos carregados"):
                             for nome_documento, texto in st.session_state.document_map.items():
                                 st.text_area(f"Conteúdo de {nome_documento}", texto[:500], height=200)
         else:
@@ -148,55 +146,22 @@ if api_key:
 else:
     st.warning("Por favor, insira sua chave de API e carregue o arquivo de credenciais para continuar.")
 
-# Estilo customizado para o chat
-st.markdown("""
-<style>
-.chat-bubble {
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-.user-message {
-    background-color: #d3d3d3;
-    color: #333333;
-    text-align: right;
-}
-.bot-message {
-    background-color: #fff8dc;
-    color: #333333;
-    text-align: left;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # Exibição das mensagens do chat
 st.markdown("### 📝 Chat")
 for mensagem in st.session_state.mensagens_chat:
     user_msg = mensagem.get("user", "Mensagem do usuário indisponível.")
     bot_msg = mensagem.get("bot", "Mensagem do bot indisponível.")
-    st.markdown(f'<div class="chat-bubble user-message"><strong>Você:</strong> {user_msg}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="chat-bubble bot-message"><strong>Bot:</strong> {bot_msg}</div>', unsafe_allow_html=True)
+    st.markdown(f"**Você:** {user_msg}\n**Bot:** {bot_msg}")
 
 # Entrada de mensagem
-st.markdown("---")
-user_input = st.text_input("💬 Sua pergunta:")
+user_input = st.text_input("💬 Sua pergunta:", key="user_input")
 
 if user_input:
     resposta_bot = gerar_resposta(user_input)
     st.session_state.mensagens_chat.append({"user": user_input, "bot": resposta_bot})
-    st.text_input("💬 Sua pergunta:", value="", key="dummy", label_visibility="hidden")
+    st.experimental_rerun()
 
-# Botões abaixo da área de perguntas
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🧹 Limpar histórico de mensagens"):
-        st.session_state.mensagens_chat = []
-        st.success("Histórico de mensagens limpo com sucesso!")
-with col2:
-    if st.button("📥 Baixar histórico do chat"):
-        with open("chat_history.txt", "w") as f:
-            for msg in st.session_state.mensagens_chat:
-                f.write(f"Você: {msg['user']}\n")
-                f.write(f"Bot: {msg['bot']}\n\n")
-        with open("chat_history.txt", "rb") as f:
-            st.download_button("Clique aqui para baixar", f, file_name="chat_history.txt")
+# Botões para gerenciamento de chat
+if st.sidebar.button("🧹 Limpar histórico de mensagens"):
+    st.session_state.mensagens_chat = []
+    st.experimental_rerun()
